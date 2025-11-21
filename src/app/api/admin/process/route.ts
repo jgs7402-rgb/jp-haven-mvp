@@ -288,7 +288,7 @@ export async function PUT(request: NextRequest) {
       finalMessage = `${locale === 'ko' ? '한국어' : '베트남어'} 장례 절차가 저장되었습니다.${syncError ? ` (동기화 실패: ${syncError})` : ''}`;
     } else {
       // 파일 쓰기 실패 (로컬 환경이지만 실패한 경우)
-      finalMessage = `${locale === 'ko' ? '한국어' : '베트남어'} 장례 절차가 처리되었습니다. (파일 저장 실패: ${fileWriteError})`;
+      finalMessage = `${locale === 'ko' ? '한국어' : '베트남어'} 장례 절차가 처리되었습니다. (파일 저장 실패가 발생했습니다.)`;
     }
     
     return NextResponse.json({ 
