@@ -1,36 +1,11 @@
-import AdminNav from '@/components/admin/AdminNav';
-import { verifySession } from '@/lib/auth';
-import { redirect } from 'next/navigation';
-
-// Vercel 서버리스 환경에서 동적 렌더링 강제
-// cookies() 사용으로 인해 정적 렌더링 불가능
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
-export const dynamicParams = true;
-
-export default async function ContactsAdminLayout({
+// 하위 레이아웃: 상위 admin/layout.tsx에서 이미 AdminNav와 세션 검증을 처리하므로
+// 여기서는 단순히 children만 렌더링합니다.
+export default function ContactsAdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  let isAuthenticated = false;
-  try {
-    isAuthenticated = await verifySession();
-  } catch (error) {
-    console.error('[CONTACTS] Session verification error:', error);
-    redirect('/admin/login');
-  }
-
-  if (!isAuthenticated) {
-    redirect('/admin/login');
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNav />
-      <main className="max-w-5xl mx-auto px-4 py-8">{children}</main>
-    </div>
-  );
+  return <>{children}</>;
 }
 
 

@@ -52,6 +52,8 @@ export default function HotlineAdminPage() {
     setError(null);
 
     try {
+      console.log('[HOTLINE] 저장 요청 시작:', data);
+      
       const res = await fetch('/api/admin/hotline', {
         method: 'PUT',
         headers: {
@@ -61,14 +63,34 @@ export default function HotlineAdminPage() {
         body: JSON.stringify(data),
       });
 
-      if (!res.ok) {
-        throw new Error('Failed to save hotline data');
+      console.log('[HOTLINE] 응답 상태:', res.status, res.statusText);
+
+      // 응답 본문 읽기 (성공/실패 모두)
+      let responseData;
+      try {
+        const text = await res.text();
+        console.log('[HOTLINE] 응답 본문:', text);
+        responseData = text ? JSON.parse(text) : {};
+      } catch (parseError) {
+        console.error('[HOTLINE] JSON 파싱 오류:', parseError);
+        throw new Error('서버 응답을 처리할 수 없습니다.');
       }
 
-      setMessage('핫라인 정보가 저장되었습니다.');
+      if (!res.ok) {
+        // 에러 응답 처리
+        const errorMessage = responseData.error || `저장 실패 (상태 코드: ${res.status})`;
+        console.error('[HOTLINE] 저장 실패:', errorMessage);
+        setError(errorMessage);
+        return;
+      }
+
+      // 성공 응답 처리
+      console.log('[HOTLINE] 저장 성공:', responseData);
+      setMessage(responseData.message || '핫라인 정보가 저장되었습니다.');
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
       console.error('[HOTLINE] Admin save error:', err);
-      setError('저장 중 오류가 발생했습니다.');
+      setError(`저장 중 오류가 발생했습니다: ${errorMessage}`);
     } finally {
       setIsSaving(false);
     }

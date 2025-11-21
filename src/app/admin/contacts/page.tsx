@@ -45,6 +45,8 @@ export default function ContactsAdminPage() {
 
   const updateStatus = async (id: string, status: 'new' | 'done') => {
     try {
+      console.log('[CONTACTS] 상태 업데이트 요청:', { id, status });
+      
       const res = await fetch('/api/admin/contacts', {
         method: 'PUT',
         headers: {
@@ -53,9 +55,29 @@ export default function ContactsAdminPage() {
         credentials: 'include',
         body: JSON.stringify({ id, status }),
       });
-      if (!res.ok) {
-        throw new Error('Failed to update status');
+
+      console.log('[CONTACTS] 응답 상태:', res.status, res.statusText);
+
+      // 응답 본문 읽기
+      let responseData;
+      try {
+        const text = await res.text();
+        console.log('[CONTACTS] 응답 본문:', text);
+        responseData = text ? JSON.parse(text) : {};
+      } catch (parseError) {
+        console.error('[CONTACTS] JSON 파싱 오류:', parseError);
+        throw new Error('서버 응답을 처리할 수 없습니다.');
       }
+
+      if (!res.ok) {
+        const errorMessage = responseData.error || `상태 변경 실패 (상태 코드: ${res.status})`;
+        console.error('[CONTACTS] 상태 업데이트 실패:', errorMessage);
+        alert(errorMessage);
+        return;
+      }
+
+      // 성공: 로컬 상태 업데이트
+      console.log('[CONTACTS] 상태 업데이트 성공:', responseData);
       setItems((prev) =>
         prev.map((item) =>
           item.id === id
@@ -67,8 +89,9 @@ export default function ContactsAdminPage() {
         )
       );
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
       console.error('[CONTACTS] Admin update error:', err);
-      alert('상태 변경 중 오류가 발생했습니다.');
+      alert(`상태 변경 중 오류가 발생했습니다: ${errorMessage}`);
     }
   };
 

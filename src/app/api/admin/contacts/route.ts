@@ -84,15 +84,23 @@ export async function PUT(request: NextRequest) {
 
     try {
       await writeFile(CONTACTS_PATH, JSON.stringify(items, null, 2), 'utf-8');
+      console.log('[CONTACTS] 상태 업데이트 완료:', { id, status });
     } catch (writeError) {
-      console.error('[CONTACTS] File write error:', writeError);
+      const writeErrorMessage = writeError instanceof Error ? writeError.message : String(writeError);
+      console.error('[CONTACTS] File write error:', writeErrorMessage);
       return NextResponse.json(
-        { error: 'Failed to save contact status' },
+        { 
+          error: '상담 문의 상태 저장에 실패했습니다.',
+          details: writeErrorMessage
+        },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      message: '상담 문의 상태가 업데이트되었습니다.'
+    });
   } catch (error) {
     console.error('[CONTACTS] Admin update error:', error);
     return NextResponse.json(

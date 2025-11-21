@@ -72,14 +72,21 @@ export async function PUT(request: NextRequest) {
       await writeFile(HOTLINE_PATH, JSON.stringify(hotline, null, 2), 'utf-8');
       console.log('[HOTLINE] Updated:', hotline);
     } catch (writeError) {
-      console.error('[HOTLINE] File write error:', writeError);
+      const writeErrorMessage = writeError instanceof Error ? writeError.message : String(writeError);
+      console.error('[HOTLINE] File write error:', writeErrorMessage);
       return NextResponse.json(
-        { error: 'Failed to save hotline data' },
+        { 
+          error: '핫라인 정보 저장에 실패했습니다.',
+          details: writeErrorMessage
+        },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      message: '핫라인 정보가 저장되었습니다.'
+    });
   } catch (error) {
     console.error('[HOTLINE] Update error:', error);
     return NextResponse.json(

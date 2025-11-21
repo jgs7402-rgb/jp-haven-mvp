@@ -2,25 +2,28 @@ import AdminNav from '@/components/admin/AdminNav';
 import { verifySession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
+// Vercel 서버리스 환경에서 동적 렌더링 강제
+// admin 섹션은 모두 세션 기반이므로 동적 렌더링 필요
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const dynamicParams = true;
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // 세션 검증 (cookies 사용)
   let isAuthenticated = false;
 
   try {
-    // 여기서 쿠키/세션 검사
     isAuthenticated = await verifySession();
   } catch (error) {
     console.error('[ADMIN LAYOUT] Session verification error:', error);
+    redirect('/admin/login');
   }
 
   if (!isAuthenticated) {
-    // 로그인 안했으면 로그인 페이지로 보내기
     redirect('/admin/login');
   }
 
