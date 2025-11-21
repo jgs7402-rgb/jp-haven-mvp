@@ -1,5 +1,8 @@
 'use client';
 
+// 참고: 클라이언트 컴포넌트에서는 export const dynamic이 작동하지 않습니다.
+// 동적 렌더링은 상위 레이아웃(src/app/admin/process/layout.tsx)의 dynamic 설정에 의해 처리됩니다.
+
 import { useEffect, useState, FormEvent } from 'react';
 
 type Locale = 'ko' | 'vi';
@@ -46,6 +49,8 @@ export default function ProcessAdminPage() {
     setError(null);
 
     try {
+      console.log('[PROCESS] 저장 요청 시작:', { locale, stepsCount: steps.length });
+      
       const res = await fetch('/api/admin/process', {
         method: 'PUT',
         headers: {
@@ -55,14 +60,52 @@ export default function ProcessAdminPage() {
         body: JSON.stringify({ locale, steps }),
       });
 
-      if (!res.ok) {
-        throw new Error('Failed to save process steps');
+      console.log('[PROCESS] 응답 상태:', res.status, res.statusText);
+
+      // 응답 본문 읽기 (성공/실패 모두)
+      let data;
+      try {
+        const text = await res.text();
+        console.log('[PROCESS] 응답 본문:', text);
+        data = text ? JSON.parse(text) : {};
+      } catch (parseError) {
+        console.error('[PROCESS] JSON 파싱 오류:', parseError);
+        throw new Error('서버 응답을 처리할 수 없습니다.');
       }
 
-      setMessage('장례 절차 정보가 저장되었습니다.');
+      if (!res.ok) {
+        // 에러 응답 처리
+        const errorMessage = data.error || data.details || `저장 실패 (상태 코드: ${res.status})`;
+        console.error('[PROCESS] 저장 실패:', errorMessage);
+        setError(errorMessage);
+        return;
+      }
+
+      // 성공 응답 처리
+      console.log('[PROCESS] 저장 성공:', data);
+      
+      // 경고 메시지 확인
+      if (data.warning) {
+        console.warn('[PROCESS] 경고:', data.warning);
+        setMessage(`${data.message || '장례 절차 정보가 처리되었습니다.'} (주의: ${data.warning})`);
+      } else {
+        setMessage(data.message || '장례 절차 정보가 저장되었습니다.');
+      }
+      
+      // 저장 성공 후 현재 언어 버전 다시 로드
+      loadSteps(locale);
+      
+      // 동기화가 성공했으면 다른 언어 버전도 다시 로드
+      if (data.syncSuccess) {
+        const targetLocale = locale === 'ko' ? 'vi' : 'ko';
+        setTimeout(() => {
+          loadSteps(targetLocale as Locale);
+        }, 500);
+      }
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
       console.error('[PROCESS] Admin save error:', err);
-      setError('저장 중 오류가 발생했습니다.');
+      setError(`저장 중 오류가 발생했습니다: ${errorMessage}`);
     } finally {
       setIsSaving(false);
     }

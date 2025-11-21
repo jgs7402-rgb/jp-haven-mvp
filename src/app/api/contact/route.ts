@@ -3,6 +3,10 @@ import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 import nodemailer from 'nodemailer';
 
+// Vercel 서버리스 환경에서 동적 렌더링 강제
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // Rate limiting을 위한 간단한 메모리 저장소 (프로덕션에서는 Redis 등 사용 권장)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 

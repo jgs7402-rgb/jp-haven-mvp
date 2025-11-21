@@ -58,9 +58,18 @@ export async function verifyCredentials(username: string, password: string): Pro
   const envUsername = process.env.ADMIN_USERNAME || process.env.ADMIN_ID;
   const envPassword = process.env.ADMIN_PASSWORD;
   
-  // 환경 변수 확인
+  console.log('[AUTH] verifyCredentials 호출:', { 
+    username, 
+    hasPassword: !!password,
+    hasEnvUsername: !!envUsername,
+    hasEnvPassword: !!envPassword 
+  });
+  
+  // 환경 변수 확인 (환경 변수가 있으면 우선 확인)
   if (envUsername && envPassword) {
-    if (username === envUsername && password === envPassword) {
+    const envMatch = username === envUsername && password === envPassword;
+    console.log('[AUTH] 환경 변수 확인 결과:', envMatch);
+    if (envMatch) {
       return true;
     }
   }
@@ -70,13 +79,31 @@ export async function verifyCredentials(username: string, password: string): Pro
   try {
     const data = await readFile(ADMIN_CONFIG_PATH, 'utf-8');
     fileConfig = JSON.parse(data);
-  } catch {
-    // 파일이 없으면 기본값 사용
-    fileConfig = { username: 'admin', password: 'admin123' };
+    console.log('[AUTH] 파일에서 읽은 설정:', { 
+      fileUsername: fileConfig.username, 
+      hasFilePassword: !!fileConfig.password,
+      passwordLength: fileConfig.password?.length || 0
+    });
+  } catch (error) {
+    console.error('[AUTH] 파일 읽기 오류:', error);
+    // 파일 읽기 실패 시 false 반환 (기본값 사용하지 않음)
+    console.log('[AUTH] 파일 읽기 실패로 인증 실패');
+    return false;
   }
   
-  // 파일의 비밀번호 확인 (환경 변수와 일치하지 않으면 파일 확인)
-  return username === fileConfig.username && password === fileConfig.password;
+  // 파일의 비밀번호 확인
+  if (!fileConfig || !fileConfig.username || !fileConfig.password) {
+    console.log('[AUTH] 파일 설정이 올바르지 않음');
+    return false;
+  }
+  
+  const fileMatch = username === fileConfig.username && password === fileConfig.password;
+  console.log('[AUTH] 파일 확인 결과:', fileMatch, {
+    usernameMatch: username === fileConfig.username,
+    passwordMatch: password === fileConfig.password
+  });
+  
+  return fileMatch;
 }
 
 export async function verifyPassword(password: string): Promise<boolean> {

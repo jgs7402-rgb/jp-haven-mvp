@@ -4,6 +4,10 @@ import { writeFile, readdir, unlink } from 'fs/promises';
 import { join } from 'path';
 import { mkdir } from 'fs/promises';
 
+// Vercel 서버리스 환경에서 동적 렌더링 강제
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const UPLOAD_DIR = join(process.cwd(), 'public', 'uploads');
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -15,9 +19,20 @@ export async function GET(request: NextRequest) {
 
   try {
     // 업로드 디렉토리 확인
-    await mkdir(UPLOAD_DIR, { recursive: true });
+    try {
+      await mkdir(UPLOAD_DIR, { recursive: true });
+    } catch (dirError) {
+      console.warn('[IMAGES] Directory creation warning (ignored):', dirError);
+    }
     
-    const files = await readdir(UPLOAD_DIR);
+    let files: string[];
+    try {
+      files = await readdir(UPLOAD_DIR);
+    } catch (readError) {
+      console.error('[IMAGES] Directory read error:', readError);
+      return NextResponse.json([], { status: 200 });
+    }
+    
     const images = files
       .filter((file) => /\.(jpg|jpeg|png|gif|webp)$/i.test(file))
       .map((file, index) => {
@@ -37,8 +52,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(images);
   } catch (error) {
-    console.error('Error reading images:', error);
-    return NextResponse.json({ error: 'Failed to read images' }, { status: 500 });
+    console.error('[IMAGES] Error reading images:', error);
+    return NextResponse.json([], { status: 200 });
   }
 }
 
@@ -65,25 +80,37 @@ export async function POST(request: NextRequest) {
     }
 
     // 업로드 디렉토리 생성
-    await mkdir(UPLOAD_DIR, { recursive: true });
+    try {
+      await mkdir(UPLOAD_DIR, { recursive: true });
+    } catch (dirError) {
+      console.warn('[IMAGES] Directory creation warning (ignored):', dirError);
+    }
 
     // 파일명 생성
     const timestamp = Date.now();
-    const extension = file.name.split('.').pop();
+    const extension = file.name.split('.').pop() || 'jpg';
     const filename = `${type}-${timestamp}.${extension}`;
     const filepath = join(UPLOAD_DIR, filename);
 
     // 파일 저장
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filepath, buffer);
+    try {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      await writeFile(filepath, buffer);
+    } catch (writeError) {
+      console.error('[IMAGES] File write error:', writeError);
+      return NextResponse.json(
+        { error: 'Failed to save image file' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
       url: `/uploads/${filename}`,
     });
   } catch (error) {
-    console.error('Error uploading image:', error);
+    console.error('[IMAGES] Error uploading image:', error);
     return NextResponse.json(
       { error: 'Failed to upload image' },
       { status: 500 }

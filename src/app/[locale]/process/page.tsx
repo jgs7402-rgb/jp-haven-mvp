@@ -22,16 +22,24 @@ export default async function ProcessPage({
   let steps: string[] = [];
 
   try {
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/process?locale=${locale}`,
-      { cache: 'no-store' }
+      `${baseUrl}/api/process?locale=${locale}`,
+      { 
+        cache: 'no-store',
+        next: { revalidate: 0 }
+      }
     );
     if (res.ok) {
       const data = await res.json();
-      steps = data.steps || [];
+      steps = Array.isArray(data.steps) ? data.steps : [];
+    } else {
+      console.warn('[PROCESS] Fetch failed:', res.status, res.statusText);
     }
   } catch (error) {
     console.error('[PROCESS] Fetch error:', error);
+    // 에러 발생 시 빈 배열 사용 (기본값)
+    steps = [];
   }
 
   return (

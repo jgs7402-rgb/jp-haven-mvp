@@ -49,16 +49,25 @@ export default async function HomePage({
   // 메인 페이지에서도 장례 절차를 API 기반으로 불러오기 (현재 locale 사용)
   let steps: string[] = [];
   try {
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+      (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/process?locale=${locale}`,
-      { cache: 'no-store' }
+      `${baseUrl}/api/process?locale=${locale}`,
+      { 
+        cache: 'no-store',
+        next: { revalidate: 0 }
+      }
     );
     if (res.ok) {
       const data = await res.json();
-      steps = data.steps || [];
+      steps = Array.isArray(data.steps) ? data.steps : [];
+    } else {
+      console.warn('[PROCESS] Home fetch failed:', res.status, res.statusText);
     }
   } catch (error) {
     console.error('[PROCESS] Home fetch error:', error);
+    // 에러 발생 시 빈 배열 사용 (기본값)
+    steps = [];
   }
 
   return (

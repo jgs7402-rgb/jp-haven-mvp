@@ -3,6 +3,10 @@ import { readdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
+// Vercel 서버리스 환경에서 동적 렌더링 강제
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const UPLOAD_DIR = join(process.cwd(), 'public', 'uploads');
 
 export async function GET() {

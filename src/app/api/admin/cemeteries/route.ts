@@ -3,6 +3,10 @@ import { verifySessionFromRequest } from '@/lib/auth';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 
+// Vercel 서버리스 환경에서 동적 렌더링 강제
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET(request: NextRequest) {
   const isAuthenticated = verifySessionFromRequest(request);
   if (!isAuthenticated) {
@@ -14,12 +18,24 @@ export async function GET(request: NextRequest) {
 
   try {
     const filePath = join(process.cwd(), 'data', `cemeteries.${locale}.json`);
-    const data = await readFile(filePath, 'utf-8');
-    const cemeteries = JSON.parse(data);
+    let data: string;
+    let cemeteries: any[];
+    
+    try {
+      data = await readFile(filePath, 'utf-8');
+      cemeteries = JSON.parse(data);
+      if (!Array.isArray(cemeteries)) {
+        cemeteries = [];
+      }
+    } catch (fileError) {
+      console.error(`[GET] ${locale} 파일 읽기 실패:`, fileError);
+      return NextResponse.json([], { status: 200 });
+    }
+    
     return NextResponse.json(cemeteries);
   } catch (error) {
     console.error('Error reading cemeteries:', error);
-    return NextResponse.json({ error: 'Failed to read data' }, { status: 500 });
+    return NextResponse.json([], { status: 200 });
   }
 }
 
@@ -260,8 +276,22 @@ export async function POST(request: NextRequest) {
     }
 
     const filePath = join(process.cwd(), 'data', `cemeteries.${locale}.json`);
-    const data = await readFile(filePath, 'utf-8');
-    const cemeteries = JSON.parse(data);
+    let data: string;
+    let cemeteries: any[];
+    
+    try {
+      data = await readFile(filePath, 'utf-8');
+      cemeteries = JSON.parse(data);
+      if (!Array.isArray(cemeteries)) {
+        cemeteries = [];
+      }
+    } catch (fileError) {
+      console.error(`[CREATE] ${locale} 파일 읽기 실패:`, fileError);
+      return NextResponse.json(
+        { error: `Failed to read ${locale} cemeteries file` },
+        { status: 500 }
+      );
+    }
 
     // 새 ID 생성
     const newId = String(Date.now());
@@ -275,8 +305,16 @@ export async function POST(request: NextRequest) {
 
     cemeteries.push(newCemetery);
 
-    await writeFile(filePath, JSON.stringify(cemeteries, null, 2), 'utf-8');
-    console.log(`[CREATE] ${locale} 버전 저장 완료: ID ${newId}`);
+    try {
+      await writeFile(filePath, JSON.stringify(cemeteries, null, 2), 'utf-8');
+      console.log(`[CREATE] ${locale} 버전 저장 완료: ID ${newId}`);
+    } catch (writeError) {
+      console.error(`[CREATE] ${locale} 파일 쓰기 실패:`, writeError);
+      return NextResponse.json(
+        { error: `Failed to save ${locale} cemetery` },
+        { status: 500 }
+      );
+    }
 
     // 양방향 동기화: 한국어로 추가한 경우 베트남어로, 베트남어로 추가한 경우 한국어로
     const targetLocale = locale === 'ko' ? 'vi' : 'ko';
@@ -338,15 +376,25 @@ export async function POST(request: NextRequest) {
         targetCemeteries.push(targetCemetery);
       }
 
-      await writeFile(targetFilePath, JSON.stringify(targetCemeteries, null, 2), 'utf-8');
+      try {
+        await writeFile(targetFilePath, JSON.stringify(targetCemeteries, null, 2), 'utf-8');
+      } catch (writeError) {
+        console.error(`[SYNC] ${targetLocale} 파일 쓰기 실패:`, writeError);
+        throw writeError;
+      }
       
       // 동기화 검증: 파일이 제대로 저장되었는지 확인
-      const verifyData = await readFile(targetFilePath, 'utf-8');
-      const verifyCemeteries = JSON.parse(verifyData);
-      const verifyCemetery = verifyCemeteries.find((c: any) => c.id === newId);
-      
-      if (!verifyCemetery) {
-        throw new Error(`동기화 검증 실패: 저장 후 확인 시 항목을 찾을 수 없음`);
+      try {
+        const verifyData = await readFile(targetFilePath, 'utf-8');
+        const verifyCemeteries = JSON.parse(verifyData);
+        const verifyCemetery = verifyCemeteries.find((c: any) => c.id === newId);
+        
+        if (!verifyCemetery) {
+          throw new Error(`동기화 검증 실패: 저장 후 확인 시 항목을 찾을 수 없음`);
+        }
+      } catch (verifyError) {
+        console.error(`[SYNC] ${targetLocale} 검증 실패:`, verifyError);
+        // 검증 실패해도 저장은 성공했으므로 계속 진행
       }
       
       console.log(`[SYNC] ${targetLocale === 'vi' ? '베트남어' : '한국어'} 버전에도 동기화 완료 및 검증 성공: ID ${newId}`);

@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 
+// Vercel 서버리스 환경에서 동적 렌더링 강제
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const HOTLINE_PATH = join(process.cwd(), 'data', 'hotline.json');
 
 export async function GET() {

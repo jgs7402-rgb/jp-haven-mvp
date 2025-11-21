@@ -3,6 +3,10 @@ import { verifySessionFromRequest } from '@/lib/auth';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 
+// Vercel 서버리스 환경에서 동적 렌더링 강제
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // 한국어 타입을 베트남어로 변환
 function translateTypeToVietnamese(type: string): string {
   const typeMap: Record<string, string> = {
@@ -296,14 +300,33 @@ export async function PUT(
       // region은 사용자가 선택한 값 그대로 사용 (없으면 undefined)
     };
 
-    await writeFile(filePath, JSON.stringify(cemeteries, null, 2), 'utf-8');
+    try {
+      await writeFile(filePath, JSON.stringify(cemeteries, null, 2), 'utf-8');
+    } catch (writeError) {
+      console.error(`[UPDATE] ${locale} 파일 쓰기 실패:`, writeError);
+      return NextResponse.json(
+        { error: `Failed to save ${locale} cemetery` },
+        { status: 500 }
+      );
+    }
 
     // 양방향 동기화: 한국어로 수정한 경우 베트남어로, 베트남어로 수정한 경우 한국어로
     const targetLocale = locale === 'ko' ? 'vi' : 'ko';
     try {
       const targetFilePath = join(process.cwd(), 'data', `cemeteries.${targetLocale}.json`);
-      const targetData = await readFile(targetFilePath, 'utf-8');
-      const targetCemeteries = JSON.parse(targetData);
+      let targetData: string;
+      let targetCemeteries: any[];
+      
+      try {
+        targetData = await readFile(targetFilePath, 'utf-8');
+        targetCemeteries = JSON.parse(targetData);
+        if (!Array.isArray(targetCemeteries)) {
+          targetCemeteries = [];
+        }
+      } catch (fileError) {
+        console.error(`[SYNC] ${targetLocale} 파일 읽기 실패:`, fileError);
+        throw new Error(`Target file not found: ${targetFilePath}`);
+      }
 
       const targetIndex = targetCemeteries.findIndex((c: any) => c.id === id);
       if (targetIndex !== -1) {
@@ -324,8 +347,13 @@ export async function PUT(
         }
       }
 
-      await writeFile(targetFilePath, JSON.stringify(targetCemeteries, null, 2), 'utf-8');
-      console.log(`[SYNC] ${targetLocale === 'vi' ? '베트남어' : '한국어'} 버전에도 동기화 완료: ID ${id}`);
+      try {
+        await writeFile(targetFilePath, JSON.stringify(targetCemeteries, null, 2), 'utf-8');
+        console.log(`[SYNC] ${targetLocale === 'vi' ? '베트남어' : '한국어'} 버전에도 동기화 완료: ID ${id}`);
+      } catch (writeError) {
+        console.error(`[SYNC] ${targetLocale} 파일 쓰기 실패:`, writeError);
+        throw writeError;
+      }
     } catch (syncError) {
       console.error(`[SYNC] ${targetLocale === 'vi' ? '베트남어' : '한국어'} 동기화 실패:`, syncError);
       // 동기화 실패해도 원본 수정은 성공했으므로 계속 진행
@@ -356,24 +384,66 @@ export async function DELETE(
     const locale = searchParams.get('locale') || 'ko';
 
     const filePath = join(process.cwd(), 'data', `cemeteries.${locale}.json`);
-    const data = await readFile(filePath, 'utf-8');
-    const cemeteries = JSON.parse(data);
+    let data: string;
+    let cemeteries: any[];
+    
+    try {
+      data = await readFile(filePath, 'utf-8');
+      cemeteries = JSON.parse(data);
+      if (!Array.isArray(cemeteries)) {
+        return NextResponse.json(
+          { error: 'Invalid data format' },
+          { status: 500 }
+        );
+      }
+    } catch (fileError) {
+      console.error(`[DELETE] ${locale} 파일 읽기 실패:`, fileError);
+      return NextResponse.json(
+        { error: `Failed to read ${locale} cemeteries file` },
+        { status: 500 }
+      );
+    }
 
     const filtered = cemeteries.filter((c: any) => c.id !== id);
 
-    await writeFile(filePath, JSON.stringify(filtered, null, 2), 'utf-8');
+    try {
+      await writeFile(filePath, JSON.stringify(filtered, null, 2), 'utf-8');
+    } catch (writeError) {
+      console.error(`[DELETE] ${locale} 파일 쓰기 실패:`, writeError);
+      return NextResponse.json(
+        { error: `Failed to delete ${locale} cemetery` },
+        { status: 500 }
+      );
+    }
 
     // 양방향 동기화: 어느 언어에서 삭제하든 양쪽 모두에서 삭제
     const targetLocale = locale === 'ko' ? 'vi' : 'ko';
     try {
       const targetFilePath = join(process.cwd(), 'data', `cemeteries.${targetLocale}.json`);
-      const targetData = await readFile(targetFilePath, 'utf-8');
-      const targetCemeteries = JSON.parse(targetData);
+      let targetData: string;
+      let targetCemeteries: any[];
+      
+      try {
+        targetData = await readFile(targetFilePath, 'utf-8');
+        targetCemeteries = JSON.parse(targetData);
+        if (!Array.isArray(targetCemeteries)) {
+          targetCemeteries = [];
+        }
+      } catch (fileError) {
+        console.warn(`[SYNC] ${targetLocale} 파일 읽기 실패 (무시):`, fileError);
+        // 파일이 없으면 이미 삭제된 것으로 간주
+        return NextResponse.json({ success: true });
+      }
 
       const targetFiltered = targetCemeteries.filter((c: any) => c.id !== id);
 
-      await writeFile(targetFilePath, JSON.stringify(targetFiltered, null, 2), 'utf-8');
-      console.log(`[SYNC] ${targetLocale === 'vi' ? '베트남어' : '한국어'} 버전에서도 삭제 완료: ID ${id}`);
+      try {
+        await writeFile(targetFilePath, JSON.stringify(targetFiltered, null, 2), 'utf-8');
+        console.log(`[SYNC] ${targetLocale === 'vi' ? '베트남어' : '한국어'} 버전에서도 삭제 완료: ID ${id}`);
+      } catch (writeError) {
+        console.error(`[SYNC] ${targetLocale} 파일 쓰기 실패:`, writeError);
+        // 쓰기 실패해도 원본 삭제는 성공했으므로 계속 진행
+      }
     } catch (syncError) {
       console.error(`[SYNC] ${targetLocale === 'vi' ? '베트남어' : '한국어'} 삭제 동기화 실패:`, syncError);
       // 동기화 실패해도 원본 삭제는 성공했으므로 계속 진행

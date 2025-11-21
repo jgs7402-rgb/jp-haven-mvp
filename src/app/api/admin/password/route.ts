@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionFromRequest, updatePassword } from '@/lib/auth';
 
+// Vercel 서버리스 환경에서 동적 렌더링 강제
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function PUT(request: NextRequest) {
   const isAuthenticated = verifySessionFromRequest(request);
   if (!isAuthenticated) {
