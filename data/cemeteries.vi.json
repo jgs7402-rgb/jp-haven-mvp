@@ -1,0 +1,101 @@
+[
+  {
+    "id": "1",
+    "name": "Công viên nghĩa trang Nha Trang",
+    "type": "Công viên nghĩa trang",
+    "types": [
+      "Công viên nghĩa trang"
+    ],
+    "address": "8 Nguyễn Thị Minh Khai, Lộc Thọ, Nha Trang, Khánh Hòa 650000",
+    "hours": "09:00-18:00",
+    "image": "https://images.unsplash.com/photo-1542272604-787c3835535d?q=80&w=1400&auto=format&fit=crop",
+    "mainImage": "https://images.unsplash.com/photo-1542272604-787c3835535d?q=80&w=1400&auto=format&fit=crop",
+    "images": [
+      "/uploads/cemetery-1763108204750.png",
+      "/uploads/cemetery-1763108204761.png",
+      "/uploads/cemetery-1763108204770.png",
+      "/uploads/cemetery-1763108204776.png"
+    ],
+    "description": "Công viên nghĩa trang thân thiện với thiên nhiên với khuôn viên rộng lớn và cảnh quan đẹp.",
+    "city": "",
+    "district": "",
+    "phone": "",
+    "cremation": false,
+    "burial": false,
+    "columbarium": false,
+    "religious": false,
+    "budget_min": 0,
+    "budget_max": 0,
+    "lat": 0,
+    "lng": 0,
+    "region": "central",
+    "province": "Nha Trang"
+  },
+  {
+    "id": "2",
+    "name": "Nghĩa trang sinh thái Vinhomes Tân Cảng, Hồ Chí Minh",
+    "type": "Nghĩa trang sinh thái",
+    "types": [
+      "Nghĩa trang sinh thái"
+    ],
+    "address": "Toà Park 5, 720A Điện Biên Phủ, Vinhomes Tân Cảng, Bình Thạnh, Thành phố Hồ Chí Minh 72300 베트남",
+    "hours": "08:00-17:00",
+    "image": "/uploads/cemetery-1763624289715.png",
+    "mainImage": "/uploads/cemetery-1763624289715.png",
+    "images": [
+      "/uploads/cemetery-1763624332253.jpeg",
+      "/uploads/cemetery-1763624332268.jpeg",
+      "/uploads/cemetery-1763624332281.jpeg",
+      "/uploads/cemetery-1763624332289.jpeg",
+      "/uploads/cemetery-1763624332297.jpeg",
+      "/uploads/cemetery-1763624332304.jpeg"
+    ],
+    "description": "Nghĩa trang sinh thái có thể an táng dưới tán cây, thân thiện với môi trường.",
+    "city": "",
+    "district": "",
+    "phone": "",
+    "cremation": false,
+    "burial": false,
+    "columbarium": false,
+    "religious": false,
+    "budget_min": 0,
+    "budget_max": 0,
+    "lat": 0,
+    "lng": 0,
+    "region": "south",
+    "province": "Hồ Chí Minh"
+  },
+  {
+    "id": "1763633454463",
+    "name": "Thiên đường Hà Nội",
+    "type": "Nhà lưu tro, Công viên nghĩa trang, Nghĩa trang sinh thái",
+    "types": [
+      "Nhà lưu tro",
+      "Công viên nghĩa trang",
+      "Nghĩa trang sinh thái"
+    ],
+    "address": "TTTM The Garden, Đ. Mễ Trì, khu đô thị, Nam Từ Liêm, Hà Nội, 베트남",
+    "hours": "09:00-22:00",
+    "image": "/uploads/cemetery-1763633398056.jpeg",
+    "mainImage": "/uploads/cemetery-1763633398056.jpeg",
+    "images": [
+      "/uploads/cemetery-1763633415627.jpeg",
+      "/uploads/cemetery-1763633415641.jpeg",
+      "/uploads/cemetery-1763633415651.jpeg"
+    ],
+    "description": "Vận hành xe đẩy trong nhà lưu tro\nCó quầy hàng, phòng nghỉ\nBảo vệ vận hành 24 giờ\nĐiều hòa hoạt động đầy đủ",
+    "city": "",
+    "district": "",
+    "phone": "",
+    "cremation": false,
+    "burial": false,
+    "columbarium": false,
+    "religious": false,
+    "budget_min": 0,
+    "budget_max": 0,
+    "lat": 0,
+    "lng": 0,
+    "region": "north",
+    "province": "Hà Nội"
+  }
+]

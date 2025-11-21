@@ -1,0 +1,101 @@
+[
+  {
+    "id": "1",
+    "name": "나짱 공원묘원",
+    "type": "공원묘원",
+    "types": [
+      "공원묘원"
+    ],
+    "address": "8 Nguyễn Thị Minh Khai, Lộc Thọ, Nha Trang, Khánh Hòa 650000",
+    "hours": "09:00-18:00",
+    "image": "https://images.unsplash.com/photo-1542272604-787c3835535d?q=80&w=1400&auto=format&fit=crop",
+    "mainImage": "https://images.unsplash.com/photo-1542272604-787c3835535d?q=80&w=1400&auto=format&fit=crop",
+    "images": [
+      "/uploads/cemetery-1763108204750.png",
+      "/uploads/cemetery-1763108204761.png",
+      "/uploads/cemetery-1763108204770.png",
+      "/uploads/cemetery-1763108204776.png"
+    ],
+    "description": "자연친화형 공원묘원으로 넓은 부지와 아름다운 조경을 자랑합니다.",
+    "city": "",
+    "district": "",
+    "phone": "",
+    "cremation": false,
+    "burial": false,
+    "columbarium": false,
+    "religious": false,
+    "budget_min": 0,
+    "budget_max": 0,
+    "lat": 0,
+    "lng": 0,
+    "region": "central",
+    "province": "나트랑"
+  },
+  {
+    "id": "2",
+    "name": "호찌민 빈홈 수목장",
+    "type": "수목장",
+    "types": [
+      "수목장"
+    ],
+    "address": "Toà Park 5, 720A Điện Biên Phủ, Vinhomes Tân Cảng, Bình Thạnh, Thành phố Hồ Chí Minh 72300 베트남",
+    "hours": "08:00-17:00",
+    "image": "/uploads/cemetery-1763624289715.png",
+    "mainImage": "/uploads/cemetery-1763624289715.png",
+    "images": [
+      "/uploads/cemetery-1763624332253.jpeg",
+      "/uploads/cemetery-1763624332268.jpeg",
+      "/uploads/cemetery-1763624332281.jpeg",
+      "/uploads/cemetery-1763624332289.jpeg",
+      "/uploads/cemetery-1763624332297.jpeg",
+      "/uploads/cemetery-1763624332304.jpeg"
+    ],
+    "description": "수목장 안치 가능한 생태 친화적 장지입니다.",
+    "city": "",
+    "district": "",
+    "phone": "",
+    "cremation": false,
+    "burial": false,
+    "columbarium": false,
+    "religious": false,
+    "budget_min": 0,
+    "budget_max": 0,
+    "lat": 0,
+    "lng": 0,
+    "region": "south",
+    "province": "호치민"
+  },
+  {
+    "id": "1763633454463",
+    "name": "하노이 천상낙원",
+    "type": "납골당, 공원묘원, 수목장",
+    "types": [
+      "납골당",
+      "공원묘원",
+      "수목장"
+    ],
+    "address": "TTTM The Garden, Đ. Mễ Trì, khu đô thị, Nam Từ Liêm, Hà Nội, 베트남",
+    "hours": "09:00-22:00",
+    "image": "/uploads/cemetery-1763633398056.jpeg",
+    "mainImage": "/uploads/cemetery-1763633398056.jpeg",
+    "images": [
+      "/uploads/cemetery-1763633415627.jpeg",
+      "/uploads/cemetery-1763633415641.jpeg",
+      "/uploads/cemetery-1763633415651.jpeg"
+    ],
+    "description": "납골당 내에 카트 운영\n매점, 휴게실 보유\n24시간 경비 운영\n에어컨 풀가동",
+    "city": "",
+    "district": "",
+    "phone": "",
+    "cremation": false,
+    "burial": false,
+    "columbarium": false,
+    "religious": false,
+    "budget_min": 0,
+    "budget_max": 0,
+    "lat": 0,
+    "lng": 0,
+    "region": "north",
+    "province": "하노이"
+  }
+]

@@ -1,0 +1,76 @@
+{
+  "nav": {
+    "home": "Trang chủ",
+    "cemeteries": "Tìm nơi an táng",
+    "process": "Quy trình",
+    "contact": "Liên hệ"
+  },
+  "hero": {
+    "title": "Tư vấn nghĩa trang trang trọng & chính xác",
+    "desc": "So sánh công viên nghĩa trang • hỏa táng • nhà lưu tro — Gọi hoặc để lại thông tin",
+    "call": "Gọi tư vấn",
+    "form": "Gửi yêu cầu"
+  },
+  "trust": {
+    "exp": "Kinh nghiệm thực địa",
+    "fast": "Phản hồi nhanh",
+    "clear": "Báo giá minh bạch"
+  },
+  "search": {
+    "title": "Danh mục nghĩa trang",
+    "q": "Tìm theo khu vực/cơ sở",
+    "filter": "Bộ lọc",
+    "type": "Loại hình",
+    "all": "Tất cả",
+    "budget": "Ngân sách",
+    "apply": "Áp dụng",
+    "typeOpts": {
+      "all": "Tất cả",
+      "cemetery": "Công viên nghĩa trang",
+      "tree": "Nghĩa trang sinh thái",
+      "columbarium": "Nhà lưu tro",
+      "crematory": "Hỏa táng"
+    }
+  },
+  "cards": {
+    "more": "Chi tiết",
+    "phone": "Điện thoại",
+    "hours": "Giờ làm việc",
+    "location": "Vị trí"
+  },
+  "detail": {
+    "back": "Quay lại danh sách",
+    "notFound": "Không tìm thấy nghĩa trang.",
+    "additionalPhotos": "Hình ảnh bổ sung",
+    "address": "Địa chỉ",
+    "hours": "Giờ làm việc",
+    "contact": "Liên hệ",
+    "description": "Mô tả",
+    "location": "Vị trí"
+  },
+  "process": {
+    "title": "Quy trình",
+    "more": "Xem chi tiết"
+  },
+  "contact": {
+    "title": "Yêu cầu tư vấn",
+    "name": "Họ tên",
+    "phone": "Số điện thoại",
+    "time": "Thời gian mong muốn",
+    "note": "Ghi chú",
+    "submit": "Gửi đi",
+    "ok": "Đã ghi nhận. Chúng tôi sẽ liên hệ sớm.",
+    "error": "Đã xảy ra lỗi. Vui lòng thử lại.",
+    "missingRequired": "Vui lòng nhập cả họ tên và số điện thoại.",
+    "missingName": "Vui lòng nhập họ tên.",
+    "missingPhone": "Vui lòng nhập số điện thoại.",
+    "hotline": "Đường dây nóng",
+    "hours": "Giờ tư vấn 08:00–21:00",
+    "cemeteryName": "Tên nghĩa trang"
+  },
+  "footer": {
+    "copyright": "Bản quyền",
+    "rights": "Bảo lưu mọi quyền"
+  }
+}
+
