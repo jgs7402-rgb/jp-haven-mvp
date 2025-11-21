@@ -118,8 +118,8 @@ export default function CemeteryDetailPage() {
     const registeredCemeteries = rawList
       .filter((c) => isRegisteredCemetery(c, locale))
       .map((c, index) => ({
-        id: c.id ?? String(index + 1),
         ...c,
+        id: c.id ?? String(index + 1),
       }));
     
     const found = registeredCemeteries.find((c) => c.id === id);

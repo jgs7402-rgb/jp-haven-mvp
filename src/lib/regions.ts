@@ -35,9 +35,9 @@ export async function getRegions(): Promise<RegionsData> {
 // 주소 기반으로 지역 자동 분류
 export function classifyRegionByAddress(
   address: string,
+  regions: RegionsData,
   province?: string,
-  city?: string,
-  regions: RegionsData
+  city?: string
 ): RegionKey | null {
   const searchText = [address, province, city].filter(Boolean).join(' ').toLowerCase();
 

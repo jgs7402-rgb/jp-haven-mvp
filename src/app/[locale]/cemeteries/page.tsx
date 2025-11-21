@@ -145,8 +145,8 @@ export default function CemeteriesPage() {
     return rawCemeteries
       .filter((c) => isRegisteredCemetery(c, locale))
       .map((c, index) => ({
-        id: c.id ?? String(index + 1),
         ...c,
+        id: c.id ?? String(index + 1),
       }));
   }, [rawCemeteries, locale]);
 
