@@ -27,14 +27,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const locale = searchParams.get('locale') || 'ko';
+  const searchParams = request.nextUrl.searchParams;
+  const locale = searchParams.get('locale') || 'ko';
 
+  try {
     // Validate locale
     if (locale !== 'ko' && locale !== 'vi') {
       return NextResponse.json(
-        { error: `Invalid locale. Must be "ko" or "vi"` },
+        {
+          error:
+            locale === 'ko'
+              ? '잘못된 언어 코드입니다. "ko" 또는 "vi"만 사용 가능합니다.'
+              : 'Mã ngôn ngữ không hợp lệ. Chỉ có thể sử dụng "ko" hoặc "vi".',
+        },
         { status: 400 }
       );
     }
@@ -51,7 +56,13 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('[PROCESS] Supabase query error:', error);
       return NextResponse.json(
-        { error: 'Failed to fetch process steps', details: error.message },
+        {
+          error:
+            locale === 'ko'
+              ? '장례 절차 정보를 불러오는 중 오류가 발생했습니다.'
+              : 'Đã xảy ra lỗi khi tải thông tin quy trình tang lễ.',
+          details: error.message,
+        },
         { status: 500 }
       );
     }
@@ -77,9 +88,13 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[PROCESS] Admin GET error:', error);
+    const locale = searchParams.get('locale') || 'ko';
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error:
+          locale === 'ko'
+            ? '서버 오류가 발생했습니다.'
+            : 'Đã xảy ra lỗi máy chủ.',
         details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
@@ -96,21 +111,32 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Get locale early for error messages
+  let locale = 'ko';
+  
   try {
     const body = await request.json();
-    const { locale, steps } = body;
+    locale = body.locale || 'ko';
+    const { steps } = body;
 
-    // Validation
+    // Validate locale
     if (!locale || (locale !== 'ko' && locale !== 'vi')) {
       return NextResponse.json(
-        { error: `Invalid locale. Must be "ko" or "vi"` },
+        {
+          error: 'Invalid locale. Must be "ko" or "vi"',
+        },
         { status: 400 }
       );
     }
 
     if (!Array.isArray(steps) || steps.length === 0) {
       return NextResponse.json(
-        { error: 'Steps array is required and must not be empty' },
+        {
+          error:
+            locale === 'ko'
+              ? '절차 배열이 필요하며 비어있을 수 없습니다.'
+              : 'Mảng bước là bắt buộc và không được để trống.',
+        },
         { status: 400 }
       );
     }
@@ -124,7 +150,12 @@ export async function PUT(request: NextRequest) {
     for (const [index, step] of steps.entries()) {
       if (!step.title || !step.description) {
         return NextResponse.json(
-          { error: `Step ${index + 1} is missing title or description` },
+          {
+            error:
+              locale === 'ko'
+                ? `단계 ${index + 1}에 제목 또는 설명이 없습니다.`
+                : `Bước ${index + 1} thiếu tiêu đề hoặc mô tả.`,
+          },
           { status: 400 }
         );
       }
@@ -145,7 +176,12 @@ export async function PUT(request: NextRequest) {
 
     if (validSteps.length === 0) {
       return NextResponse.json(
-        { error: 'No valid steps to save' },
+        {
+          error:
+            locale === 'ko'
+              ? '저장할 유효한 절차가 없습니다.'
+              : 'Không có bước hợp lệ nào để lưu.',
+        },
         { status: 400 }
       );
     }
@@ -188,7 +224,10 @@ export async function PUT(request: NextRequest) {
         console.error('[PROCESS] Translation error:', translationError);
         return NextResponse.json(
           {
-            error: 'Failed to translate content to Vietnamese',
+            error:
+              locale === 'ko'
+                ? '베트남어 번역에 실패했습니다.'
+                : 'Dịch sang tiếng Việt thất bại.',
             details:
               translationError instanceof Error
                 ? translationError.message
@@ -221,7 +260,10 @@ export async function PUT(request: NextRequest) {
         console.error(`[PROCESS] Delete error for ${loc}:`, deleteError);
         return NextResponse.json(
           {
-            error: `Failed to delete existing ${loc} steps`,
+            error:
+              locale === 'ko'
+                ? `기존 ${loc === 'ko' ? '한국어' : '베트남어'} 절차 삭제에 실패했습니다.`
+                : `Xóa các bước ${loc === 'ko' ? 'tiếng Hàn' : 'tiếng Việt'} hiện có thất bại.`,
             details: deleteError.message,
           },
           { status: 500 }
@@ -243,7 +285,10 @@ export async function PUT(request: NextRequest) {
       console.error('[PROCESS] Insert error:', insertError);
       return NextResponse.json(
         {
-          error: 'Failed to save process steps',
+          error:
+            locale === 'ko'
+              ? '장례 절차 저장에 실패했습니다.'
+              : 'Lưu quy trình tang lễ thất bại.',
           details: insertError.message,
         },
         { status: 500 }
@@ -260,15 +305,19 @@ export async function PUT(request: NextRequest) {
       message:
         locale === 'ko'
           ? '장례 절차가 저장되었고, 베트남어 버전도 자동 번역되어 저장되었습니다.'
-          : '장례 절차가 저장되었습니다.',
+          : 'Quy trình tang lễ đã được lưu thành công.',
       count: insertedData?.length || 0,
       data: insertedData,
     });
   } catch (error) {
     console.error('[PROCESS] Admin PUT error:', error);
+    // Use the locale variable defined at the top of the function
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error:
+          locale === 'ko'
+            ? '서버 오류가 발생했습니다.'
+            : 'Đã xảy ra lỗi máy chủ.',
         details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }

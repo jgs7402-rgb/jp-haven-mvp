@@ -21,7 +21,12 @@ export async function GET(request: NextRequest) {
     // Validate locale
     if (locale !== 'ko' && locale !== 'vi') {
       return NextResponse.json(
-        { error: `Invalid locale. Must be "ko" or "vi"` },
+        {
+          error:
+            locale === 'ko'
+              ? '잘못된 언어 코드입니다. "ko" 또는 "vi"만 사용 가능합니다.'
+              : 'Mã ngôn ngữ không hợp lệ. Chỉ có thể sử dụng "ko" hoặc "vi".',
+        },
         { status: 400 }
       );
     }
