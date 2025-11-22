@@ -50,12 +50,10 @@ export default function ProcessStepsClient({
             {steps.map((step, index) => (
               <div
                 key={step.id || index}
-                className="h-full transform transition-all duration-300 hover:scale-105 animate-fade-in-up"
-                style={{
-                  animationDelay: `${index * 0.1}s`,
-                }}
+                className="h-full flex flex-col p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-xl animate-fade-in-up"
+                style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <Card className="h-full flex flex-col p-6 hover:shadow-xl">
+                <Card>
                   {/* Step Number Badge */}
                   <div className="mb-4">
                     <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-semibold">
