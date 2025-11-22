@@ -1,4 +1,4 @@
-/// src/app/api/process/route.ts
+// src/app/api/process/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabase, PROCESS_STEPS_TABLE } from "@/lib/supabase";
@@ -14,10 +14,12 @@ export const runtime = "nodejs";
  */
 export async function GET(request: NextRequest) {
   try {
+    // ?locale=ko | vi 읽기
     const searchParams = request.nextUrl.searchParams;
     const rawLocale = searchParams.get("locale");
     const locale: "ko" | "vi" = rawLocale === "vi" ? "vi" : "ko";
 
+    // Supabase에서 해당 locale의 절차 텍스트 가져오기
     const { data, error } = await supabase
       .from(PROCESS_STEPS_TABLE)
       .select("step_order, text")
@@ -42,6 +44,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // step_order 순으로 정렬 후 text만 배열로 변환
     const steps =
       data
         ?.sort(

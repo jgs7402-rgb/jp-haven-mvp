@@ -1,81 +1,80 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+// src/app/api/process/route.ts
 
-// Vercel 서버리스 환경에서 동적 렌더링 강제
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+import { NextRequest, NextResponse } from "next/server";
+import { supabase, PROCESS_STEPS_TABLE } from "@/lib/supabase";
 
-const FUNERAL_PROCESS_STEPS_TABLE = 'funeral_process_steps';
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 /**
- * GET handler - Public API for fetching funeral process steps
- * Returns locale-specific content (KR for Korean pages, VI for Vietnamese pages)
- * Vietnamese pages must NEVER contain English
+ * 상용 공개용 GET 핸들러
+ * locale 별 장례 절차 목록을 내려준다.
+ *  - locale=ko → 한국어 메시지
+ *  - locale=vi → 베트남어 메시지 (영어 없음)
  */
 export async function GET(request: NextRequest) {
-  // Get searchParams outside try block so it's accessible in catch block
-  const searchParams = request.nextUrl.searchParams;
-  const locale = searchParams.get('locale') || 'ko';
-
   try {
-    // Validate locale
-    if (locale !== 'ko' && locale !== 'vi') {
+    // ?locale=ko | vi 읽기
+    const searchParams = request.nextUrl.searchParams;
+    const rawLocale = searchParams.get("locale");
+    const locale: "ko" | "vi" = rawLocale === "vi" ? "vi" : "ko";
+
+    // Supabase에서 해당 locale의 절차 텍스트 가져오기
+    const { data, error } = await supabase
+      .from(PROCESS_STEPS_TABLE)
+      .select("step_order, text")
+      .eq("locale", locale)
+      .order("step_order", { ascending: true });
+
+    if (error) {
+      console.error("[PROCESS PUBLIC] Supabase error:", error);
+
+      const msg =
+        locale === "ko"
+          ? "장례 절차를 불러오는 중 오류가 발생했습니다."
+          : "Đã xảy ra lỗi khi tải danh sách quy trình tang lễ.";
+
       return NextResponse.json(
         {
-          error:
-            locale === 'ko'
-              ? '잘못된 언어 코드입니다. "ko" 또는 "vi"만 사용 가능합니다.'
-              : 'Mã ngôn ngữ không hợp lệ. Chỉ có thể sử dụng "ko" hoặc "vi".',
+          success: false,
+          locale,
+          error: msg,
         },
-        { status: 400 }
+        { status: 500 }
       );
     }
 
-    console.log('[PROCESS] Public API GET request:', { locale });
+    // step_order 순으로 정렬 후 text만 배열로 변환
+    const steps =
+      data
+        ?.sort(
+          (a: { step_order: number }, b: { step_order: number }) =>
+            a.step_order - b.step_order
+        )
+        .map((row: { text: string }) => row.text) ?? [];
 
-    // Fetch all funeral steps for the locale, ordered by step_order
-    const { data, error } = await supabase
-      .from(FUNERAL_PROCESS_STEPS_TABLE)
-      .select('*')
-      .eq('locale', locale)
-      .order('step_order', { ascending: true });
-
-    if (error) {
-      console.error('[PROCESS] Supabase query error:', error);
-      // Return empty array instead of error to prevent page crash
-      return NextResponse.json({
+    return NextResponse.json(
+      {
         success: true,
         locale,
-        steps: [],
-      });
-    }
+        steps,
+      },
+      { status: 200 }
+    );
+  } catch (err) {
+    console.error("[PROCESS PUBLIC] Unexpected error:", err);
 
-    // Transform data to include title, description, images
-    const steps = (data || []).map((item: any) => ({
-      id: item.id,
-      step_order: item.step_order,
-      title: item.title,
-      description: item.description,
-      images: item.images || [],
-    }));
+    const msgKo = "서버 오류로 장례 절차를 불러오지 못했습니다.";
+    const msgVi =
+      "Đã xảy ra lỗi máy chủ, không thể tải danh sách quy trình tang lễ.";
 
-    console.log('[PROCESS] Public API GET success:', {
-      locale,
-      count: steps.length,
-    });
-
-    return NextResponse.json({
-      success: true,
-      locale,
-      steps,
-    });
-  } catch (error) {
-    console.error('[PROCESS] Public API GET error:', error);
-    // Return empty array instead of error to prevent page crash
-    return NextResponse.json({
-      success: true,
-      locale,
-      steps: [],
-    });
+    return NextResponse.json(
+      {
+        success: false,
+        error_ko: msgKo,
+        error_vi: msgVi,
+      },
+      { status: 500 }
+    );
   }
 }
