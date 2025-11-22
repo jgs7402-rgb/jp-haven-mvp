@@ -1,4 +1,5 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // ========================================
 // Lazy Supabase Client Initialization
@@ -155,15 +156,27 @@ export function getSupabaseClient(): SupabaseClient {
 // ========================================
 // Legacy export for backward compatibility
 // ========================================
-// This getter will throw when accessed if env vars are missing,
-// but only when the property is accessed, not at import time.
+// This is a getter that lazily creates the client only when accessed.
+// It throws when accessed if env vars are missing, not at import time.
 // This allows existing code to continue working while new code should use getSupabaseClient().
+let _supabaseInstance: SupabaseClient | undefined;
+
+function getSupabaseInstance(): SupabaseClient {
+  if (!_supabaseInstance) {
+    _supabaseInstance = getSupabaseClient();
+  }
+  return _supabaseInstance;
+}
+
+// Export as an object with Proxy to handle property access
+// This ensures no code runs at module import time
 export const supabase = new Proxy({} as SupabaseClient, {
-  get(_target, prop) {
-    const client = getSupabaseClient();
+  get(_target, prop, _receiver) {
+    // Only execute when a property is accessed, not at import time
+    const client = getSupabaseInstance();
     const value = (client as any)[prop];
     if (typeof value === 'function') {
-      return value.bind(client);
+      return (...args: any[]) => value.apply(client, args);
     }
     return value;
   },
