@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 
 // This route is temporarily disabled to avoid Supabase env errors during build.
 export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
 
 export async function POST() {
   return NextResponse.json(
