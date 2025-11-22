@@ -1,44 +1,28 @@
-import { NextResponse } from 'next/server';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { supabase } from "@/lib/supabaseClient";
+import { NextResponse } from "next/server";
 
-/**
- * Example API route for testing Supabase connection
- * Performs a simple SELECT query on the "users" table
- */
 export async function GET() {
   try {
-    // Simple select query from "users" table
-    const { data, error } = await supabaseClient
-      .from('users')
-      .select('*');
+    const { data, error } = await supabase
+      .from("users")
+      .select("*");
 
     if (error) {
-      console.error('[TEST API] Supabase query error:', error);
       return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-          details: error,
-        },
+        { success: false, error: error.message },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: data,
-      count: data?.length || 0,
-    });
-  } catch (error) {
-    console.error('[TEST API] Unexpected error:', error);
+    return NextResponse.json({ success: true, data });
+  } catch (err) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : String(error),
+        error: "Unexpected server error",
+        details: err instanceof Error ? err.message : String(err),
       },
       { status: 500 }
     );
   }
 }
-
