@@ -233,16 +233,26 @@ export default function ProcessAdminPage() {
     setError(null);
 
     // Validate and prepare steps with auto-title generation
-    // Auto-generate title from description if title is missing (first 20 characters)
+    // Ensure description is always included when textarea has content
     const preparedSteps = steps
-      .filter((step) => step.description.trim()) // Only keep steps with description
       .map((step) => {
-        const trimmedTitle = step.title.trim();
-        const trimmedDescription = step.description.trim();
+        // Get description value - ensure it's a string
+        const descriptionValue = step.description || '';
+        const trimmedDescription = descriptionValue.toString().trim();
+        
+        // Skip steps with no description
+        if (!trimmedDescription) {
+          return null;
+        }
+        
+        // Get title value - ensure it's a string
+        const titleValue = step.title || '';
+        const trimmedTitle = titleValue.toString().trim();
         
         // If title is empty, auto-generate from description (first 20 chars)
+        // If description exists but title is empty, use description as title
         const finalTitle = trimmedTitle || 
-          trimmedDescription.slice(0, 20).replace(/\s+/g, ' ').trim() || 
+          (trimmedDescription.slice(0, 20).replace(/\s+/g, ' ').trim()) || 
           `${t.step} ${step.step_order}`; // Fallback to "단계 N" or "Bước N"
         
         return {
@@ -250,13 +260,22 @@ export default function ProcessAdminPage() {
           title: finalTitle,
           description: trimmedDescription,
         };
-      });
+      })
+      .filter((step) => step !== null) as ProcessStep[];
 
     if (preparedSteps.length === 0) {
       setError(t.validationError);
       setIsSaving(false);
       return;
     }
+
+    // Debug: Log the payload to verify description is included
+    console.log('[PROCESS] Submitting steps:', preparedSteps.map(s => ({
+      step_order: s.step_order,
+      title: s.title,
+      description: s.description?.substring(0, 50) + '...',
+      hasDescription: !!s.description,
+    })));
 
     try {
       const response = await fetch('/api/admin/process', {

@@ -147,14 +147,19 @@ export async function PUT(request: NextRequest) {
     });
 
     // Validate step structure - ensure description exists
+    // Only return error if BOTH title and description are empty
     for (const [index, step] of steps.entries()) {
-      if (!step.description || !step.description.trim()) {
+      const stepDescription = step.description ? String(step.description).trim() : '';
+      const stepTitle = step.title ? String(step.title).trim() : '';
+      
+      // Only error if BOTH are empty
+      if (!stepDescription && !stepTitle) {
         return NextResponse.json(
           {
             error:
               locale === 'ko'
                 ? `단계 ${index + 1}에 설명이 없습니다.`
-                : `Bước ${index + 1} thiếu mô tả.`,
+                : `Bước ${index + 1} không có nội dung mô tả.`,
           },
           { status: 400 }
         );
@@ -162,19 +167,24 @@ export async function PUT(request: NextRequest) {
     }
 
     // Prepare steps for database with auto-title generation
-    // If title is empty, auto-generate from description (first 20 characters)
+    // If title is empty but description exists, use description as title (or first 20 chars)
     const trimmedSteps = steps.map((step: any, index: number) => {
-      const trimmedTitle = (step.title || '').trim();
-      const trimmedDescription = (step.description || '').trim();
+      // Ensure description is treated as string
+      const rawDescription = step.description || '';
+      const trimmedDescription = String(rawDescription).trim();
+      
+      // Ensure title is treated as string
+      const rawTitle = step.title || '';
+      const trimmedTitle = String(rawTitle).trim();
       
       // Auto-generate title from description if title is empty
-      // Take first 20 characters and clean up whitespace
+      // If description exists, use it (or first 20 chars) as title
       let finalTitle = trimmedTitle;
       if (!finalTitle && trimmedDescription) {
-        finalTitle = trimmedDescription
-          .slice(0, 20)
-          .replace(/\s+/g, ' ')
-          .trim();
+        // Use description as title, or first 20 characters if description is long
+        finalTitle = trimmedDescription.length > 20
+          ? trimmedDescription.slice(0, 20).replace(/\s+/g, ' ').trim()
+          : trimmedDescription;
         
         // If still empty (e.g., all spaces), use fallback
         if (!finalTitle) {
@@ -182,17 +192,21 @@ export async function PUT(request: NextRequest) {
         }
       }
       
+      // Ensure we always have both title and description
+      // If description is empty but title exists, use title as description
+      const finalDescription = trimmedDescription || finalTitle;
+      
       return {
         title: finalTitle || (locale === 'ko' ? `단계 ${index + 1}` : `Bước ${index + 1}`),
-        description: trimmedDescription,
+        description: finalDescription,
         images: Array.isArray(step.images) ? step.images : [],
         step_order: index + 1,
       };
     });
 
-    // Remove empty steps
+    // Remove empty steps - only keep steps that have description
     const validSteps = trimmedSteps.filter(
-      (step) => step.title.length > 0 && step.description.length > 0
+      (step) => step.description && step.description.trim().length > 0
     );
 
     if (validSteps.length === 0) {
