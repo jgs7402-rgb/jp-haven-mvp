@@ -1,4 +1,4 @@
-// src/app/api/process/route.ts
+/// src/app/api/process/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabase, PROCESS_STEPS_TABLE } from "@/lib/supabase";
@@ -43,15 +43,17 @@ export async function GET(request: NextRequest) {
     }
 
     const steps =
-      data?.sort(
-        (a: { step_order: number }, b: { step_order: number }) =>
-          a.step_order - b.step_order
-      ).map((row: { text: string }) => row.text) ?? [];
+      data
+        ?.sort(
+          (a: { step_order: number }, b: { step_order: number }) =>
+            a.step_order - b.step_order
+        )
+        .map((row: { text: string }) => row.text) ?? [];
 
     return NextResponse.json(
       {
         success: true,
-      locale,
+        locale,
         steps,
       },
       { status: 200 }
