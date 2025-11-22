@@ -3,9 +3,9 @@
  * Handles image uploads to Supabase Storage bucket
  */
 
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase';
 
-const STORAGE_BUCKET = 'funeral_items';
+const STORAGE_BUCKET = 'funeral_process';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 /**
@@ -109,4 +109,3 @@ export async function deleteImageFromStorage(imageUrl: string): Promise<void> {
     throw error;
   }
 }
-

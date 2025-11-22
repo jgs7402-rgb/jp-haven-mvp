@@ -36,11 +36,11 @@ export async function translateKRtoVI(koreanText: string): Promise<string> {
           {
             role: 'system',
             content:
-              'You are a professional translator specializing in funeral service content. Translate Korean funeral-related text into natural Vietnamese. The Vietnamese must sound native, smooth, and professional. Do not output any English words at all. If you encounter English terms, translate them to Vietnamese equivalents. The output must be 100% Vietnamese only.',
+              'You are a professional translator specializing in funeral service content. Translate Korean funeral-related text into natural Vietnamese. The Vietnamese must sound native, smooth, and professional. Absolutely no English words allowed. If you encounter English terms, translate them to Vietnamese equivalents. The output must be 100% Vietnamese only. Do not include any English words in the translation.',
           },
           {
             role: 'user',
-            content: `Translate the following Korean text to Vietnamese. Output ONLY Vietnamese text, no English words:\n\n${koreanText}`,
+            content: `Translate the following Korean text to Vietnamese. Output ONLY Vietnamese text, no English words at all:\n\n${koreanText}`,
           },
         ],
         temperature: 0.3, // Lower temperature for more consistent translations
@@ -70,7 +70,6 @@ export async function translateKRtoVI(koreanText: string): Promise<string> {
     }
 
     // Strip any accidental English tokens (basic cleanup)
-    // Remove common English words that might slip through
     translatedText = stripEnglishWords(translatedText);
 
     console.log('[TRANSLATE] Translation successful:', {
