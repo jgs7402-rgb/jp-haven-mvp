@@ -1,359 +1,73 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { verifySessionFromRequest } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
-import { translateKRtoVI } from '@/lib/translate';
+// src/app/api/process/route.ts
 
-// Vercel 서버리스 환경에서 동적 렌더링 강제
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+import { NextRequest, NextResponse } from "next/server";
+import { supabase, PROCESS_STEPS_TABLE } from "@/lib/supabase";
 
-const FUNERAL_PROCESS_STEPS_TABLE = 'funeral_process_steps';
-
-export interface ProcessStep {
-  id?: string;
-  locale: 'ko' | 'vi';
-  step_order: number;
-  title: string;
-  description: string;
-  images: string[];
-}
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 /**
- * GET handler - Fetch funeral steps by locale for admin
+ * 상용 공개용 GET 핸들러
+ * locale 별 장례 절차 목록을 내려준다.
+ *  - locale=ko → 한국어 메시지
+ *  - locale=vi → 베트남어 메시지 (영어 없음)
  */
 export async function GET(request: NextRequest) {
-  const isAuthenticated = verifySessionFromRequest(request);
-  if (!isAuthenticated) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const searchParams = request.nextUrl.searchParams;
-  const locale = searchParams.get('locale') || 'ko';
-
   try {
-    // Validate locale
-    if (locale !== 'ko' && locale !== 'vi') {
-      return NextResponse.json(
-        {
-          error:
-            locale === 'ko'
-              ? '잘못된 언어 코드입니다. "ko" 또는 "vi"만 사용 가능합니다.'
-              : 'Mã ngôn ngữ không hợp lệ. Chỉ có thể sử dụng "ko" hoặc "vi".',
-        },
-        { status: 400 }
-      );
-    }
+    const searchParams = request.nextUrl.searchParams;
+    const rawLocale = searchParams.get("locale");
+    const locale: "ko" | "vi" = rawLocale === "vi" ? "vi" : "ko";
 
-    console.log('[PROCESS] Admin GET request:', { locale });
-
-    // Fetch all funeral steps for the locale, ordered by step_order
     const { data, error } = await supabase
-      .from(FUNERAL_PROCESS_STEPS_TABLE)
-      .select('*')
-      .eq('locale', locale)
-      .order('step_order', { ascending: true });
+      .from(PROCESS_STEPS_TABLE)
+      .select("step_order, text")
+      .eq("locale", locale)
+      .order("step_order", { ascending: true });
 
     if (error) {
-      console.error('[PROCESS] Supabase query error:', error);
+      console.error("[PROCESS PUBLIC] Supabase error:", error);
+
+      const msg =
+        locale === "ko"
+          ? "장례 절차를 불러오는 중 오류가 발생했습니다."
+          : "Đã xảy ra lỗi khi tải danh sách quy trình tang lễ.";
+
       return NextResponse.json(
         {
-          error:
-            locale === 'ko'
-              ? '장례 절차 정보를 불러오는 중 오류가 발생했습니다.'
-              : 'Đã xảy ra lỗi khi tải thông tin quy trình tang lễ.',
-          details: error.message,
+          success: false,
+          locale,
+          error: msg,
         },
         { status: 500 }
       );
     }
 
-    // Transform data to include title, description, images
-    const steps = (data || []).map((item: any) => ({
-      id: item.id,
-      step_order: item.step_order,
-      title: item.title,
-      description: item.description,
-      images: item.images || [],
-    }));
+    const steps =
+      data?.sort(
+        (a: { step_order: number }, b: { step_order: number }) =>
+          a.step_order - b.step_order
+      ).map((row: { text: string }) => row.text) ?? [];
 
-    console.log('[PROCESS] Admin GET success:', {
-      locale,
-      count: steps.length,
-    });
-
-    return NextResponse.json({
-      success: true,
-      locale,
-      steps,
-    });
-  } catch (error) {
-    console.error('[PROCESS] Admin GET error:', error);
-    const locale = searchParams.get('locale') || 'ko';
     return NextResponse.json(
       {
-        error:
-          locale === 'ko'
-            ? '서버 오류가 발생했습니다.'
-            : 'Đã xảy ra lỗi máy chủ.',
-        details: error instanceof Error ? error.message : String(error),
+        success: true,
+      locale,
+        steps,
       },
-      { status: 500 }
+      { status: 200 }
     );
-  }
-}
+  } catch (err) {
+    console.error("[PROCESS PUBLIC] Unexpected error:", err);
 
-/**
- * PUT handler - Save funeral steps with auto-translation
- */
-export async function PUT(request: NextRequest) {
-  const isAuthenticated = verifySessionFromRequest(request);
-  if (!isAuthenticated) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+    const msgKo = "서버 오류로 장례 절차를 불러오지 못했습니다.";
+    const msgVi =
+      "Đã xảy ra lỗi máy chủ, không thể tải danh sách quy trình tang lễ.";
 
-  // Get locale early for error messages
-  let locale = 'ko';
-  
-  try {
-    const body = await request.json();
-    locale = body.locale || 'ko';
-    const { steps } = body;
-
-    // Validate locale
-    if (!locale || (locale !== 'ko' && locale !== 'vi')) {
-      return NextResponse.json(
-        {
-          error: 'Invalid locale. Must be "ko" or "vi"',
-        },
-        { status: 400 }
-      );
-    }
-
-    if (!Array.isArray(steps) || steps.length === 0) {
-      return NextResponse.json(
-        {
-          error:
-            locale === 'ko'
-              ? '절차 배열이 필요하며 비어있을 수 없습니다.'
-              : 'Mảng bước là bắt buộc và không được để trống.',
-        },
-        { status: 400 }
-      );
-    }
-
-    console.log('[PROCESS] Admin PUT request:', {
-      locale,
-      stepsCount: steps.length,
-    });
-
-    // Validate step structure - ensure description exists
-    // Only return error if BOTH title and description are empty
-    for (const [index, step] of steps.entries()) {
-      const stepDescription = step.description ? String(step.description).trim() : '';
-      const stepTitle = step.title ? String(step.title).trim() : '';
-      
-      // Only error if BOTH are empty
-      if (!stepDescription && !stepTitle) {
-        return NextResponse.json(
-          {
-            error:
-              locale === 'ko'
-                ? `단계 ${index + 1}에 설명이 없습니다.`
-                : `Bước ${index + 1} không có nội dung mô tả.`,
-          },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Prepare steps for database with auto-title generation
-    // If title is empty but description exists, use description as title (or first 20 chars)
-    const trimmedSteps = steps.map((step: any, index: number) => {
-      // Ensure description is treated as string
-      const rawDescription = step.description || '';
-      const trimmedDescription = String(rawDescription).trim();
-      
-      // Ensure title is treated as string
-      const rawTitle = step.title || '';
-      const trimmedTitle = String(rawTitle).trim();
-      
-      // Auto-generate title from description if title is empty
-      // If description exists, use it (or first 20 chars) as title
-      let finalTitle = trimmedTitle;
-      if (!finalTitle && trimmedDescription) {
-        // Use description as title, or first 20 characters if description is long
-        finalTitle = trimmedDescription.length > 20
-          ? trimmedDescription.slice(0, 20).replace(/\s+/g, ' ').trim()
-          : trimmedDescription;
-        
-        // If still empty (e.g., all spaces), use fallback
-        if (!finalTitle) {
-          finalTitle = locale === 'ko' ? `단계 ${index + 1}` : `Bước ${index + 1}`;
-        }
-      }
-      
-      // Ensure we always have both title and description
-      // If description is empty but title exists, use title as description
-      const finalDescription = trimmedDescription || finalTitle;
-      
-      return {
-        title: finalTitle || (locale === 'ko' ? `단계 ${index + 1}` : `Bước ${index + 1}`),
-        description: finalDescription,
-        images: Array.isArray(step.images) ? step.images : [],
-        step_order: index + 1,
-      };
-    });
-
-    // Remove empty steps - only keep steps that have description
-    const validSteps = trimmedSteps.filter(
-      (step) => step.description && step.description.trim().length > 0
-    );
-
-    if (validSteps.length === 0) {
-      return NextResponse.json(
-        {
-          error:
-            locale === 'ko'
-              ? '저장할 유효한 절차가 없습니다.'
-              : 'Không có bước hợp lệ nào để lưu.',
-        },
-        { status: 400 }
-      );
-    }
-
-    let koreanSteps: ProcessStep[] = [];
-    let vietnameseSteps: ProcessStep[] = [];
-
-    if (locale === 'ko') {
-      // Save Korean steps
-      koreanSteps = validSteps.map((step, index) => ({
-        locale: 'ko' as const,
-        step_order: index + 1,
-        title: step.title,
-        description: step.description,
-        images: step.images,
-      }));
-
-      // Auto-translate Korean to Vietnamese
-      console.log('[PROCESS] Translating Korean steps to Vietnamese...');
-      try {
-        vietnameseSteps = await Promise.all(
-          validSteps.map(async (step, index) => {
-            const [title_vi, description_vi] = await Promise.all([
-              translateKRtoVI(step.title),
-              translateKRtoVI(step.description),
-            ]);
-
-            return {
-              locale: 'vi' as const,
-              step_order: index + 1,
-              title: title_vi,
-              description: description_vi,
-              images: step.images, // Images are shared
-            };
-          })
-        );
-
-        console.log('[PROCESS] Translation completed');
-      } catch (translationError) {
-        console.error('[PROCESS] Translation error:', translationError);
-        return NextResponse.json(
-          {
-            error:
-              locale === 'ko'
-                ? '베트남어 번역에 실패했습니다.'
-                : 'Dịch sang tiếng Việt thất bại.',
-            details:
-              translationError instanceof Error
-                ? translationError.message
-                : String(translationError),
-          },
-          { status: 500 }
-        );
-      }
-    } else {
-      // Save Vietnamese steps only
-      vietnameseSteps = validSteps.map((step, index) => ({
-        locale: 'vi' as const,
-        step_order: index + 1,
-        title: step.title,
-        description: step.description,
-        images: step.images,
-      }));
-    }
-
-    // Delete existing records for the locale(s) before inserting new ones
-    const localesToUpdate = locale === 'ko' ? ['ko', 'vi'] : ['vi'];
-    
-    for (const loc of localesToUpdate) {
-      const { error: deleteError } = await supabase
-        .from(FUNERAL_PROCESS_STEPS_TABLE)
-        .delete()
-        .eq('locale', loc);
-
-      if (deleteError) {
-        console.error(`[PROCESS] Delete error for ${loc}:`, deleteError);
-        return NextResponse.json(
-          {
-            error:
-              locale === 'ko'
-                ? `기존 ${loc === 'ko' ? '한국어' : '베트남어'} 절차 삭제에 실패했습니다.`
-                : `Xóa các bước ${loc === 'ko' ? 'tiếng Hàn' : 'tiếng Việt'} hiện có thất bại.`,
-            details: deleteError.message,
-          },
-          { status: 500 }
-        );
-      }
-    }
-
-    // Insert new steps
-    const allSteps = locale === 'ko' 
-      ? [...koreanSteps, ...vietnameseSteps]
-      : vietnameseSteps;
-
-    const { data: insertedData, error: insertError } = await supabase
-      .from(FUNERAL_PROCESS_STEPS_TABLE)
-      .insert(allSteps)
-      .select();
-
-    if (insertError) {
-      console.error('[PROCESS] Insert error:', insertError);
-      return NextResponse.json(
-        {
-          error:
-            locale === 'ko'
-              ? '장례 절차 저장에 실패했습니다.'
-              : 'Lưu quy trình tang lễ thất bại.',
-          details: insertError.message,
-        },
-        { status: 500 }
-      );
-    }
-
-    console.log('[PROCESS] Admin PUT success:', {
-      locale,
-      insertedCount: insertedData?.length || 0,
-    });
-
-    return NextResponse.json({
-      success: true,
-      message:
-        locale === 'ko'
-          ? '장례 절차가 저장되었고, 베트남어 버전도 자동 번역되어 저장되었습니다.'
-          : 'Quy trình tang lễ đã được lưu thành công.',
-      count: insertedData?.length || 0,
-      data: insertedData,
-    });
-  } catch (error) {
-    console.error('[PROCESS] Admin PUT error:', error);
-    // Use the locale variable defined at the top of the function
     return NextResponse.json(
       {
-        error:
-          locale === 'ko'
-            ? '서버 오류가 발생했습니다.'
-            : 'Đã xảy ra lỗi máy chủ.',
-        details: error instanceof Error ? error.message : String(error),
+        success: false,
+        error_ko: msgKo,
+        error_vi: msgVi,
       },
       { status: 500 }
     );
