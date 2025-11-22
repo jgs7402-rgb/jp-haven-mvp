@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionFromRequest } from '@/lib/auth';
-import { readFile } from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
-import { safeWriteFile, getDataFilePath, isVercelEnvironment } from '@/lib/vercel-file-utils';
+import { isVercelEnvironment } from '@/lib/vercel-file-utils';
 
 // Vercel 서버리스 환경에서 동적 렌더링 강제
 export const dynamic = 'force-dynamic';
@@ -175,14 +175,44 @@ export async function PUT(request: NextRequest) {
     console.log('[PROCESS] 환경 정보:', { isVercel });
     
     // 현재 언어로 저장
-    const filePath = getDataFilePath(`process.${locale}.json`);
+    // 로컬 환경에서는 원본 data 디렉토리에 저장 (상용 페이지 API가 읽는 경로와 동일)
+    // Vercel 환경에서는 /tmp/data에 시도 (실패할 수 있지만 시도)
+    const filePath = join(process.cwd(), 'data', `process.${locale}.json`);
     const jsonContent = JSON.stringify(trimmedSteps, null, 2);
     
     console.log('[PROCESS] 저장할 파일 경로:', filePath);
     console.log('[PROCESS] 저장할 JSON 내용 길이:', jsonContent.length);
     
     // 안전하게 파일 쓰기 (Vercel 환경 대응)
-    const writeResult = await safeWriteFile(filePath, jsonContent);
+    // 로컬 환경에서는 원본 data 디렉토리에 직접 저장
+    let writeResult;
+    try {
+      await writeFile(filePath, jsonContent, 'utf-8');
+      writeResult = { success: true };
+      console.log('[PROCESS] File saved successfully:', { locale, count: trimmedSteps.length, filePath });
+    } catch (writeError) {
+      const errorMessage = writeError instanceof Error ? writeError.message : String(writeError);
+      console.error('[PROCESS] File write error:', errorMessage);
+      
+      if (isVercel) {
+        // Vercel 환경에서는 파일 쓰기 실패를 경고로만 처리
+        writeResult = { 
+          success: false, 
+          error: errorMessage,
+          warning: 'Vercel 환경에서는 파일 시스템이 읽기 전용입니다. 데이터를 영구 저장하려면 Git에 커밋하거나 외부 스토리지를 사용하세요.'
+        };
+      } else {
+        // 로컬 환경에서는 파일 쓰기 실패 시 에러 반환
+        return NextResponse.json(
+          { 
+            error: 'Failed to save process steps',
+            details: errorMessage,
+            filePath
+          },
+          { status: 500 }
+        );
+      }
+    }
     
     if (!writeResult.success && !isVercel) {
       // 로컬 환경에서만 파일 쓰기 실패 시 에러 반환
@@ -203,73 +233,66 @@ export async function PUT(request: NextRequest) {
       console.warn('[PROCESS] File write failed (but continuing):', writeResult.error);
     }
 
-    // 다른 언어로 자동 번역하여 동기화 (비동기로 처리, 실패해도 원본 저장은 성공)
-    const targetLocale = locale === 'ko' ? 'vi' : 'ko';
+    // 한국어 저장 시 베트남어로 동기화 (번역 없이 같은 steps 복사)
+    // 베트남어 저장 시에는 한국어로 동기화하지 않음 (단방향: ko → vi)
     let syncSuccess = false;
     let syncError: string | null = null;
     
-    console.log('[PROCESS] 동기화 시작:', { original: locale, target: targetLocale });
-    
-    try {
-      // 각 단계를 번역
-      const translatedSteps: string[] = [];
-      for (let i = 0; i < trimmedSteps.length; i++) {
-        const step = trimmedSteps[i];
-        try {
-          console.log(`[PROCESS] 번역 중 (${i + 1}/${trimmedSteps.length}):`, step.substring(0, 50));
-          const translated = await translateText(step, locale, targetLocale);
-          translatedSteps.push(translated);
-          console.log(`[PROCESS] 번역 완료:`, translated.substring(0, 50));
-        } catch (stepError) {
-          const stepErrorMessage = stepError instanceof Error ? stepError.message : String(stepError);
-          console.warn(`[PROCESS] 단계 ${i + 1} 번역 실패, 원본 사용:`, stepErrorMessage);
-          // 개별 단계 번역 실패 시 원본 텍스트 사용
-          translatedSteps.push(step);
-        }
-      }
-
-      console.log('[PROCESS] 번역 완료, 파일 저장 시작:', { count: translatedSteps.length });
-
-      // 번역된 내용을 다른 언어 파일에 저장
-      const targetFilePath = getDataFilePath(`process.${targetLocale}.json`);
-      const targetJsonContent = JSON.stringify(translatedSteps, null, 2);
-      
-      console.log('[PROCESS] 동기화 파일 경로:', targetFilePath);
-      
-      // 안전하게 파일 쓰기 (Vercel 환경 대응)
-      const syncWriteResult = await safeWriteFile(targetFilePath, targetJsonContent);
-      
-      if (syncWriteResult.success) {
-        syncSuccess = true;
-        console.log('[PROCESS] Sync completed successfully:', { 
-          original: locale, 
-          synced: targetLocale, 
-          count: translatedSteps.length,
-          filePath: targetFilePath
-        });
-      } else {
-        const writeErrorMessage = syncWriteResult.error || 'Unknown error';
-        console.error('[PROCESS] 동기화 파일 쓰기 실패:', { 
-          message: writeErrorMessage,
-          filePath: targetFilePath,
-          isVercel
-        });
-        
-        // Vercel 환경에서는 파일 쓰기 실패를 에러로 기록하지 않음
-        if (!isVercel) {
-          syncError = writeErrorMessage;
-        } else {
-          console.warn('[PROCESS] Vercel 환경에서 동기화 파일 쓰기 실패 (예상된 동작일 수 있음)');
-        }
-      }
-    } catch (syncErr) {
-      syncError = syncErr instanceof Error ? syncErr.message : String(syncErr);
-      const syncErrStack = syncErr instanceof Error ? syncErr.stack : undefined;
-      console.error('[PROCESS] Sync error (original save succeeded):', { 
-        message: syncError,
-        stack: syncErrStack
+    // 한국어로 저장한 경우에만 베트남어 파일에도 같은 steps를 복사
+    if (locale === 'ko') {
+      const targetLocale = 'vi';
+      console.log('[PROCESS] 한국어 저장 감지, 베트남어 파일 동기화 시작:', { 
+        original: locale, 
+        target: targetLocale,
+        stepsCount: trimmedSteps.length
       });
-      // 동기화 실패해도 원본 저장은 성공했으므로 계속 진행
+      
+      try {
+        // 같은 steps를 베트남어 파일에 저장 (번역 없이 복사)
+        const targetFilePath = join(process.cwd(), 'data', `process.${targetLocale}.json`);
+        const targetJsonContent = JSON.stringify(trimmedSteps, null, 2);
+        
+        console.log('[PROCESS] 베트남어 파일 저장 경로:', targetFilePath);
+        
+        // 파일 쓰기
+        let syncWriteResult;
+        try {
+          await writeFile(targetFilePath, targetJsonContent, 'utf-8');
+          syncWriteResult = { success: true };
+          syncSuccess = true;
+          console.log('[PROCESS] 베트남어 파일 동기화 완료:', { 
+            original: locale, 
+            synced: targetLocale, 
+            count: trimmedSteps.length,
+            filePath: targetFilePath
+          });
+        } catch (syncWriteError) {
+          const errorMessage = syncWriteError instanceof Error ? syncWriteError.message : String(syncWriteError);
+          console.error('[PROCESS] 베트남어 파일 쓰기 실패:', errorMessage);
+          syncWriteResult = { 
+            success: false, 
+            error: errorMessage 
+          };
+          
+          // Vercel 환경에서는 파일 쓰기 실패를 에러로 기록하지 않음
+          if (!isVercel) {
+            syncError = errorMessage;
+          } else {
+            console.warn('[PROCESS] Vercel 환경에서 베트남어 파일 쓰기 실패 (예상된 동작일 수 있음)');
+          }
+        }
+      } catch (syncErr) {
+        syncError = syncErr instanceof Error ? syncErr.message : String(syncErr);
+        const syncErrStack = syncErr instanceof Error ? syncErr.stack : undefined;
+        console.error('[PROCESS] 베트남어 동기화 오류 (한국어 저장은 성공):', { 
+          message: syncError,
+          stack: syncErrStack
+        });
+        // 동기화 실패해도 원본 저장은 성공했으므로 계속 진행
+      }
+    } else {
+      // 베트남어로 저장한 경우에는 동기화하지 않음
+      console.log('[PROCESS] 베트남어 저장 감지, 한국어 동기화 생략 (단방향: ko → vi만 동기화)');
     }
 
     // 성공 응답
@@ -280,12 +303,15 @@ export async function PUT(request: NextRequest) {
     if (isVercel && !fileWriteSuccess) {
       // Vercel 환경에서 파일 쓰기 실패
       finalMessage = `${locale === 'ko' ? '한국어' : '베트남어'} 장례 절차가 처리되었습니다. (주의: Vercel 환경 제한으로 인해 파일 저장이 되지 않을 수 있습니다. 로컬에서 Git에 커밋하거나 외부 스토리지를 사용하세요.)`;
-    } else if (fileWriteSuccess && syncSuccess) {
-      // 파일 쓰기와 동기화 모두 성공
-      finalMessage = `${locale === 'ko' ? '한국어' : '베트남어'} 장례 절차가 저장되었고, ${targetLocale === 'ko' ? '한국어' : '베트남어'} 버전으로도 자동 동기화되었습니다.`;
+    } else if (fileWriteSuccess && syncSuccess && locale === 'ko') {
+      // 한국어 저장 시 파일 쓰기와 베트남어 동기화 모두 성공
+      finalMessage = `한국어 장례 절차가 저장되었고, 베트남어 버전으로도 자동 동기화되었습니다. 상용 페이지에 즉시 반영됩니다.`;
+    } else if (fileWriteSuccess && locale === 'ko' && !syncSuccess) {
+      // 한국어 저장은 성공했지만 베트남어 동기화는 실패
+      finalMessage = `한국어 장례 절차가 저장되었습니다. 베트남어 동기화는 실패했습니다.${syncError ? ` (${syncError})` : ''}`;
     } else if (fileWriteSuccess) {
-      // 파일 쓰기는 성공, 동기화는 실패
-      finalMessage = `${locale === 'ko' ? '한국어' : '베트남어'} 장례 절차가 저장되었습니다.${syncError ? ` (동기화 실패: ${syncError})` : ''}`;
+      // 베트남어 저장 (동기화 없음) 또는 기타 성공
+      finalMessage = `${locale === 'ko' ? '한국어' : '베트남어'} 장례 절차가 저장되었고, 상용 페이지에 즉시 반영됩니다.`;
     } else {
       // 파일 쓰기 실패 (로컬 환경이지만 실패한 경우)
       finalMessage = `${locale === 'ko' ? '한국어' : '베트남어'} 장례 절차가 처리되었습니다. (파일 저장 실패가 발생했습니다.)`;

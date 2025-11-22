@@ -47,6 +47,7 @@ export default async function HomePage({
   const heroImageUrl = await getHeroImage();
 
   // 메인 페이지에서도 장례 절차를 API 기반으로 불러오기 (현재 locale 사용)
+  // 항상 최신 데이터를 가져오도록 cache: 'no-store' 사용
   let steps: string[] = [];
   try {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
@@ -54,13 +55,14 @@ export default async function HomePage({
     const res = await fetch(
       `${baseUrl}/api/process?locale=${locale}`,
       { 
-        cache: 'no-store',
-        next: { revalidate: 0 }
+        cache: 'no-store', // 캐시하지 않고 항상 최신 데이터 가져오기
+        next: { revalidate: 0 } // 재검증 시간 0초
       }
     );
     if (res.ok) {
       const data = await res.json();
       steps = Array.isArray(data.steps) ? data.steps : [];
+      console.log('[PROCESS] 메인 페이지 데이터 로드 완료:', { locale, count: steps.length });
     } else {
       console.warn('[PROCESS] Home fetch failed:', res.status, res.statusText);
     }
@@ -126,21 +128,25 @@ export default async function HomePage({
       {/* Process Preview */}
       <Section id="process">
         <h2 className="text-2xl font-semibold mb-6">{t('process.title')}</h2>
-        <ol className="grid md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {steps.map((step: string, i: number) => (
-            <li key={i}>
-              <Card className="p-4">
-                <div className="text-3xl font-bold text-primary/60">{i + 1}</div>
-                <div className="mt-2">{step}</div>
-              </Card>
-            </li>
+            <Card key={i} className="p-4">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary text-white grid place-content-center text-xl font-bold">
+                  {i + 1}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-700 whitespace-pre-line">{step}</p>
+                </div>
+              </div>
+            </Card>
           ))}
           {steps.length === 0 && (
-            <li className="col-span-full text-center text-sm text-gray-500 py-8">
+            <div className="col-span-full text-center text-sm text-gray-500 py-8">
               표시할 장례 절차가 없습니다. 어드민에서 등록해주세요.
-            </li>
+            </div>
           )}
-        </ol>
+        </div>
         <div className="mt-6 text-center">
           <Link
             href="/process"

@@ -23,16 +23,18 @@ export default async function ProcessPage({
 
   try {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    // 항상 최신 데이터를 가져오도록 cache: 'no-store' 사용
     const res = await fetch(
       `${baseUrl}/api/process?locale=${locale}`,
       { 
-        cache: 'no-store',
-        next: { revalidate: 0 }
+        cache: 'no-store', // 캐시하지 않고 항상 최신 데이터 가져오기
+        next: { revalidate: 0 } // 재검증 시간 0초
       }
     );
     if (res.ok) {
       const data = await res.json();
       steps = Array.isArray(data.steps) ? data.steps : [];
+      console.log('[PROCESS] 상용 페이지 데이터 로드 완료:', { locale, count: steps.length });
     } else {
       console.warn('[PROCESS] Fetch failed:', res.status, res.statusText);
     }

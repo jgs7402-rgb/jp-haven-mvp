@@ -89,17 +89,21 @@ export default function ProcessAdminPage() {
         console.warn('[PROCESS] 경고:', data.warning);
         setMessage(`${data.message || '장례 절차 정보가 처리되었습니다.'} (주의: ${data.warning})`);
       } else {
-        setMessage(data.message || '장례 절차 정보가 저장되었습니다.');
+        // 서버에서 받은 메시지 사용 (동기화 정보 포함)
+        const successMessage = data.message || 
+          (data.fileWriteSuccess 
+            ? '장례 절차 정보가 저장되었고, 상용 페이지에 즉시 반영됩니다.' 
+            : '장례 절차 정보가 저장되었습니다.');
+        setMessage(successMessage);
       }
       
       // 저장 성공 후 현재 언어 버전 다시 로드
-      loadSteps(locale);
+      await loadSteps(locale);
       
-      // 동기화가 성공했으면 다른 언어 버전도 다시 로드
-      if (data.syncSuccess) {
-        const targetLocale = locale === 'ko' ? 'vi' : 'ko';
-        setTimeout(() => {
-          loadSteps(targetLocale as Locale);
+      // 한국어 저장 시 베트남어 동기화가 성공했으면 베트남어 버전도 다시 로드
+      if (data.syncSuccess && locale === 'ko') {
+        setTimeout(async () => {
+          await loadSteps('vi');
         }, 500);
       }
     } catch (err) {
