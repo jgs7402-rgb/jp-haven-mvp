@@ -13,10 +13,11 @@ const FUNERAL_PROCESS_STEPS_TABLE = 'funeral_process_steps';
  * Vietnamese pages must NEVER contain English
  */
 export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const locale = searchParams.get('locale') || 'ko';
+  // Get searchParams outside try block so it's accessible in catch block
+  const searchParams = request.nextUrl.searchParams;
+  const locale = searchParams.get('locale') || 'ko';
 
+  try {
     // Validate locale
     if (locale !== 'ko' && locale !== 'vi') {
       return NextResponse.json(
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
     // Return empty array instead of error to prevent page crash
     return NextResponse.json({
       success: true,
-      locale: searchParams.get('locale') || 'ko',
+      locale,
       steps: [],
     });
   }
