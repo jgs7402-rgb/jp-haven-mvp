@@ -146,28 +146,49 @@ export async function PUT(request: NextRequest) {
       stepsCount: steps.length,
     });
 
-    // Validate step structure
+    // Validate step structure - ensure description exists
     for (const [index, step] of steps.entries()) {
-      if (!step.title || !step.description) {
+      if (!step.description || !step.description.trim()) {
         return NextResponse.json(
           {
             error:
               locale === 'ko'
-                ? `단계 ${index + 1}에 제목 또는 설명이 없습니다.`
-                : `Bước ${index + 1} thiếu tiêu đề hoặc mô tả.`,
+                ? `단계 ${index + 1}에 설명이 없습니다.`
+                : `Bước ${index + 1} thiếu mô tả.`,
           },
           { status: 400 }
         );
       }
     }
 
-    // Prepare steps for database
-    const trimmedSteps = steps.map((step: any, index: number) => ({
-      title: (step.title || '').trim(),
-      description: (step.description || '').trim(),
-      images: Array.isArray(step.images) ? step.images : [],
-      step_order: index + 1,
-    }));
+    // Prepare steps for database with auto-title generation
+    // If title is empty, auto-generate from description (first 20 characters)
+    const trimmedSteps = steps.map((step: any, index: number) => {
+      const trimmedTitle = (step.title || '').trim();
+      const trimmedDescription = (step.description || '').trim();
+      
+      // Auto-generate title from description if title is empty
+      // Take first 20 characters and clean up whitespace
+      let finalTitle = trimmedTitle;
+      if (!finalTitle && trimmedDescription) {
+        finalTitle = trimmedDescription
+          .slice(0, 20)
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        // If still empty (e.g., all spaces), use fallback
+        if (!finalTitle) {
+          finalTitle = locale === 'ko' ? `단계 ${index + 1}` : `Bước ${index + 1}`;
+        }
+      }
+      
+      return {
+        title: finalTitle || (locale === 'ko' ? `단계 ${index + 1}` : `Bước ${index + 1}`),
+        description: trimmedDescription,
+        images: Array.isArray(step.images) ? step.images : [],
+        step_order: index + 1,
+      };
+    });
 
     // Remove empty steps
     const validSteps = trimmedSteps.filter(

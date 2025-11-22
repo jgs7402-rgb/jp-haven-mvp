@@ -34,8 +34,9 @@ const messages = {
     validationError: '최소 하나의 유효한 절차를 입력해주세요.',
     imageUploadSuccess: '개의 이미지가 업로드되었습니다.',
     imageUploadError: '이미지 업로드 중 오류가 발생했습니다.',
-    placeholderTitle: '단계 제목',
+    placeholderTitle: '단계 제목 (설명 입력 시 자동 생성 가능)',
     placeholderDescription: '단계 설명',
+    titleRequired: '제목을 입력하세요',
   },
   vi: {
     title: 'Quản lý quy trình tang lễ',
@@ -57,8 +58,9 @@ const messages = {
     validationError: 'Vui lòng nhập ít nhất một bước hợp lệ.',
     imageUploadSuccess: ' hình ảnh đã được tải lên.',
     imageUploadError: 'Đã xảy ra lỗi khi tải hình ảnh lên.',
-    placeholderTitle: 'Tiêu đề bước',
+    placeholderTitle: 'Tiêu đề bước (có thể tự động tạo từ mô tả)',
     placeholderDescription: 'Mô tả bước',
+    titleRequired: 'Vui lòng nhập tiêu đề',
   },
 };
 
@@ -230,12 +232,27 @@ export default function ProcessAdminPage() {
     setMessage(null);
     setError(null);
 
-    // Validate steps
-    const validSteps = steps.filter(
-      (step) => step.title.trim() && step.description.trim()
-    );
+    // Validate and prepare steps with auto-title generation
+    // Auto-generate title from description if title is missing (first 20 characters)
+    const preparedSteps = steps
+      .filter((step) => step.description.trim()) // Only keep steps with description
+      .map((step) => {
+        const trimmedTitle = step.title.trim();
+        const trimmedDescription = step.description.trim();
+        
+        // If title is empty, auto-generate from description (first 20 chars)
+        const finalTitle = trimmedTitle || 
+          trimmedDescription.slice(0, 20).replace(/\s+/g, ' ').trim() || 
+          `${t.step} ${step.step_order}`; // Fallback to "단계 N" or "Bước N"
+        
+        return {
+          ...step,
+          title: finalTitle,
+          description: trimmedDescription,
+        };
+      });
 
-    if (validSteps.length === 0) {
+    if (preparedSteps.length === 0) {
       setError(t.validationError);
       setIsSaving(false);
       return;
@@ -250,7 +267,7 @@ export default function ProcessAdminPage() {
         credentials: 'include',
         body: JSON.stringify({
           locale,
-          steps: validSteps,
+          steps: preparedSteps,
         }),
       });
 
@@ -359,15 +376,24 @@ export default function ProcessAdminPage() {
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {t.stepTitle} <span className="text-red-500">{t.required}</span>
+                    <span className="text-xs text-gray-500 ml-2">
+                      ({locale === 'ko' ? '비워두면 설명에서 자동 생성' : 'Để trống sẽ tự động tạo từ mô tả'})
+                    </span>
                   </label>
                   <input
                     type="text"
                     value={step.title}
                     onChange={(e) => updateStep(index, 'title', e.target.value)}
-                    required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder={t.placeholderTitle}
                   />
+                  {!step.title.trim() && step.description.trim() && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      {locale === 'ko' 
+                        ? `제목이 비어있습니다. 저장 시 설명의 첫 20자("${step.description.trim().slice(0, 20)}...")로 자동 생성됩니다.`
+                        : `Tiêu đề đang trống. Sẽ tự động tạo từ 20 ký tự đầu của mô tả ("${step.description.trim().slice(0, 20)}...") khi lưu.`}
+                    </p>
+                  )}
                 </div>
 
                 {/* Description */}
