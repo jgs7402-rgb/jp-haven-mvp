@@ -3,7 +3,7 @@
  * Handles image uploads to Supabase Storage bucket
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 
 const STORAGE_BUCKET = 'funeral_process';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -37,6 +37,9 @@ export async function uploadImageToStorage(
     : `${timestamp}-${randomString}.${fileExtension}`;
 
   try {
+    // Get Supabase client (this will throw if env vars are missing)
+    const supabase = getSupabaseClient();
+
     // Convert File to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
     const fileBuffer = new Uint8Array(arrayBuffer);
@@ -90,6 +93,9 @@ export async function uploadMultipleImagesToStorage(
  */
 export async function deleteImageFromStorage(imageUrl: string): Promise<void> {
   try {
+    // Get Supabase client (this will throw if env vars are missing)
+    const supabase = getSupabaseClient();
+
     // Extract file path from URL
     const urlParts = imageUrl.split('/');
     const fileName = urlParts[urlParts.length - 1].split('?')[0];
