@@ -32,7 +32,7 @@ export default async function AdminDashboard() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">대시보드</h1>
-        <p className="text-gray-600">JP Haven 관리자 대시보드에 오신 것을 환영합니다.</p>
+        <p className="text-gray-600">관리자 대시보드에 오신 것을 환영합니다.</p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -120,7 +120,7 @@ export default function AdminLoginPage() {
             관리자 로그인
           </h1>
           <p className="text-gray-600 text-sm">
-            JP Haven 관리자 페이지에 접속하세요
+            관리자 페이지에 접속하세요
           </p>
         </div>
 
