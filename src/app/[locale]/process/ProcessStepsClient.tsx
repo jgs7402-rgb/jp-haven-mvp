@@ -48,65 +48,67 @@ export default function ProcessStepsClient({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {steps.map((step, index) => (
-              <Card
+              <div
                 key={step.id || index}
-                className="h-full flex flex-col p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-xl animate-fade-in-up"
+                className="h-full transform transition-all duration-300 hover:scale-105 animate-fade-in-up"
                 style={{
                   animationDelay: `${index * 0.1}s`,
                 }}
               >
-                {/* Step Number Badge */}
-                <div className="mb-4">
-                  <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-semibold">
-                    {locale === 'ko'
-                      ? `단계 ${step.step_order}`
-                      : `Bước ${step.step_order}`}
-                  </span>
-                </div>
-
-                {/* Images */}
-                {step.images && step.images.length > 0 && (
+                <Card className="h-full flex flex-col p-6 hover:shadow-xl">
+                  {/* Step Number Badge */}
                   <div className="mb-4">
-                    {step.images.length === 1 ? (
-                      <img
-                        src={step.images[0]}
-                        alt={step.title}
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                    ) : (
-                      <div className="grid grid-cols-2 gap-2">
-                        {step.images.slice(0, 4).map((imageUrl: string, imgIndex: number) => (
-                          <img
-                            key={imgIndex}
-                            src={imageUrl}
-                            alt={`${step.title} - ${imgIndex + 1}`}
-                            className="w-full h-32 object-cover rounded-lg"
-                          />
-                        ))}
-                      </div>
-                    )}
+                    <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-semibold">
+                      {locale === 'ko'
+                        ? `단계 ${step.step_order}`
+                        : `Bước ${step.step_order}`}
+                    </span>
                   </div>
-                )}
 
-                {/* Title */}
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                  {step.title}
-                </h3>
+                  {/* Images */}
+                  {step.images && step.images.length > 0 && (
+                    <div className="mb-4">
+                      {step.images.length === 1 ? (
+                        <img
+                          src={step.images[0]}
+                          alt={step.title}
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2">
+                          {step.images.slice(0, 4).map((imageUrl: string, imgIndex: number) => (
+                            <img
+                              key={imgIndex}
+                              src={imageUrl}
+                              alt={`${step.title} - ${imgIndex + 1}`}
+                              className="w-full h-32 object-cover rounded-lg"
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                {/* Description */}
-                <p className="text-gray-600 flex-grow mb-4 line-clamp-4">
-                  {step.description}
-                </p>
+                  {/* Title */}
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                    {step.title}
+                  </h3>
 
-                {/* Footer */}
-                <div className="mt-auto pt-4 border-t border-gray-200">
-                  <p className="text-xs text-gray-400">
-                    {new Date().toLocaleDateString(
-                      locale === 'ko' ? 'ko-KR' : 'vi-VN'
-                    )}
+                  {/* Description */}
+                  <p className="text-gray-600 flex-grow mb-4 line-clamp-4">
+                    {step.description}
                   </p>
-                </div>
-              </Card>
+
+                  {/* Footer */}
+                  <div className="mt-auto pt-4 border-t border-gray-200">
+                    <p className="text-xs text-gray-400">
+                      {new Date().toLocaleDateString(
+                        locale === 'ko' ? 'ko-KR' : 'vi-VN'
+                      )}
+                    </p>
+                  </div>
+                </Card>
+              </div>
             ))}
           </div>
         )}
